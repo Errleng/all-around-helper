@@ -1,4 +1,24 @@
 {
+  "main": "index.js",
+  "name": "all-around-helper",
+  "description": "A Discord bot for Lobotomy Corporation and Library of Ruina",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js",
+    "watch": "tsc -p tsconfig.json -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Errleng/all-around-helper.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Errleng/all-around-helper/issues"
+  },
+  "homepage": "https://github.com/Errleng/all-around-helper#readme",
   "dependencies": {
     "discord.js": "^13.6.0",
     "dotenv": "^16.0.0"

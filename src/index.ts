@@ -1,9 +1,12 @@
 import * as dotenv from 'dotenv';
+import { Client, Collection, Intents } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
+import { COMMANDS_PATH } from './constants';
+import { Command } from './types';
+
 dotenv.config();
 console.log('Process.env:', process.env);
-
-// Require the necessary discord.js classes
-import { Client, Intents } from 'discord.js';
 
 const token = process.env.BOT_TOKEN;
 
@@ -15,23 +18,43 @@ client.once('ready', () => {
     console.log('Ready!');
 });
 
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isCommand()) return;
+const setupCommands = async () => {
+    const commands = new Collection<string, Command>();
+    const commandFiles = fs
+        .readdirSync(`./src/${COMMANDS_PATH}`)
+        .filter((file) => file.endsWith('.ts'));
 
-    const { commandName } = interaction;
-
-    if (commandName === 'ping') {
-        await interaction.reply('Pong!');
-    } else if (commandName === 'server') {
-        await interaction.reply(
-            `Server name: ${interaction.guild?.name}\nTotal members: ${interaction.guild?.memberCount}`
-        );
-    } else if (commandName === 'user') {
-        await interaction.reply(
-            `Your tag: ${interaction.user.tag}\nYour id: ${interaction.user.id}`
-        );
+    for (const file of commandFiles) {
+        const command = (
+            await import(`${COMMANDS_PATH}/${path.parse(file).name}`)
+        ).default;
+        // Set a new item in the Collection
+        // With the key as the command name and the value as the exported module
+        console.log('command', command);
+        commands.set(command.data.name, command);
     }
-});
 
+    client.on('interactionCreate', async (interaction) => {
+        if (!interaction.isCommand()) return;
+        const command = commands.get(interaction.commandName);
+
+        if (!command) return;
+
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(
+                `Error executing command ${interaction.commandName}`,
+                error
+            );
+            await interaction.reply({
+                content: 'There was an error while executing this command!',
+                ephemeral: true,
+            });
+        }
+    });
+};
+
+setupCommands();
 // Login to Discord with your client's token
 client.login(token);

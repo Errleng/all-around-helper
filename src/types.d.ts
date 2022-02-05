@@ -5,3 +5,9 @@ export interface Command {
     data: SlashCommandBuilder;
     execute: (interaction: CommandInteraction) => Promise<void>;
 }
+
+export interface ClientEvent {
+    name: string;
+    once: boolean;
+    execute: (...interaction: Interaction<CacheType>) => void;
+}

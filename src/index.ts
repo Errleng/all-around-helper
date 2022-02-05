@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { COMMANDS_PATH } from './constants';
 import { Command } from './types';
+import { importDefaults } from './utils';
 
 dotenv.config();
 console.log('Process.env:', process.env);
@@ -19,24 +20,15 @@ client.once('ready', () => {
 });
 
 const setupCommands = async () => {
-    const commands = new Collection<string, Command>();
-    const commandFiles = fs
-        .readdirSync(`./src/${COMMANDS_PATH}`)
-        .filter((file) => file.endsWith('.ts'));
-
-    for (const file of commandFiles) {
-        const command = (
-            await import(`${COMMANDS_PATH}/${path.parse(file).name}`)
-        ).default;
-        // Set a new item in the Collection
-        // With the key as the command name and the value as the exported module
-        console.log('command', command);
-        commands.set(command.data.name, command);
+    const commandsDict = new Collection<string, Command>();
+    const commands = await importDefaults<Command>(COMMANDS_PATH);
+    for (const command of commands) {
+        commandsDict.set(command.data.name, command);
     }
 
     client.on('interactionCreate', async (interaction) => {
         if (!interaction.isCommand()) return;
-        const command = commands.get(interaction.commandName);
+        const command = commandsDict.get(interaction.commandName);
 
         if (!command) return;
 

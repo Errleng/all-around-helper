@@ -1,3 +1,4 @@
+import { ColorResolvable } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,4 +18,19 @@ export const importDefaults: <Type>(
         imports.push((await import(`${dirPath}/${fileName}`)).default);
     }
     return imports;
+};
+
+export const getSyntaxForColor: (color: ColorResolvable) => string = (
+    color
+) => {
+    switch (color) {
+        case 'YELLOW':
+            return 'fix';
+        case 'ORANGE':
+            return 'css';
+        case 'BLUE':
+            return 'ini';
+        default:
+            return '';
+    }
 };

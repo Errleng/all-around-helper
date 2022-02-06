@@ -7,6 +7,7 @@ declare global {
             CLIENT_ID: string;
             CLIENT_SECRET: string;
             TEST_SERVER_ID: string;
+            DATABASE_URL: string;
         }
     }
 }

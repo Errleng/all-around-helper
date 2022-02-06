@@ -10,6 +10,15 @@ import {
 } from '../constants';
 import { getSyntaxForColor } from '../utils';
 
+let useCount = 0;
+
+setInterval(() => {
+    if (useCount > 0) {
+        console.log(`reset useCount from ${useCount} to zero`);
+    }
+    useCount = 0;
+}, 1000 * 60);
+
 const command: Command = {
     data: new SlashCommandBuilder()
         .setName('ruina-card')
@@ -21,6 +30,14 @@ const command: Command = {
                 .setRequired(true)
         ),
     async execute(interaction: CommandInteraction) {
+        if (useCount >= process.env.REQUEST_LIMIT) {
+            await interaction.reply(
+                `Exceeded rate limit of ${process.env.REQUEST_LIMIT} requests per minute.`
+            );
+            return;
+        }
+        ++useCount;
+
         const errorMessage =
             'An error occurred while trying to search for the card';
 

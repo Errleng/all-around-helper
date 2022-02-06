@@ -8,6 +8,7 @@ declare global {
             CLIENT_SECRET: string;
             TEST_SERVER_ID: string;
             DATABASE_URL: string;
+            REQUEST_LIMIT: number;
         }
     }
 }

@@ -28,6 +28,14 @@ const registerCommands = async () => {
         body: commandsJson,
     })
         .then(() =>
+            console.log('Successfully registered application guild commands.')
+        )
+        .catch(console.error);
+
+    rest.put(Routes.applicationCommands(clientId), {
+        body: commandsJson,
+    })
+        .then(() =>
             console.log('Successfully registered application commands.')
         )
         .catch(console.error);

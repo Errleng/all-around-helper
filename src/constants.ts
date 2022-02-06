@@ -3,7 +3,7 @@ import { ColorResolvable } from 'discord.js';
 export const COMMANDS_PATH = './commands';
 export const EVENTS_PATH = './events';
 export const DICE_TYPE_IMAGE_MAP: Record<string, string> = {
-    Evade: '↪️',
+    Evade: '🔄',
     Guard: '🛡️',
     Slash: '🔪',
     Pierce: '📌',

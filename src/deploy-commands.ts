@@ -3,8 +3,6 @@ import {
     RESTPostAPIApplicationCommandsJSONBody,
     Routes,
 } from 'discord-api-types/v9';
-import fs from 'fs';
-import path from 'path';
 
 import * as dotenv from 'dotenv';
 import { COMMANDS_PATH } from './constants';

@@ -97,7 +97,7 @@ const command: Command = {
                 return;
             }
             if (!diceDesc) {
-                console.warn(`Dice description '${diceDesc}' is invalid!`);
+                // console.warn(`Dice description '${diceDesc}' is invalid!`);
                 diceDesc = '';
             }
             const text = `\`\`\`${getSyntaxForColor(

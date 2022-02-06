@@ -122,9 +122,7 @@ const command: Command = {
 
             const emojiKey = `${diceGroup}${diceType}`;
             let diceEmoji = DICE_TYPE_EMOJI_MAP[emojiKey];
-            console.log('use custom emojis?', env.USE_CUSTOM_EMOJIS);
             if (env.USE_CUSTOM_EMOJIS) {
-                console.log('using custom emojis');
                 diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
             }
 

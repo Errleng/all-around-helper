@@ -16,16 +16,16 @@ export const DICE_TYPE_EMOJI_MAP: Record<string, string> = {
     StandbyBlunt: '💥',
 };
 export const DICE_TYPE_CUSTOM_EMOJI_MAP: Record<string, string> = {
-    DefEvade: '<:defensiveevade:939986712732520488>',
-    DefGuard: '<:defensiveguard:939986712774443110>',
-    AtkSlash: '<:offensiveslash:939986712904482826>',
-    AtkPierce: '<:offensivepierce:939986712623448114>',
-    AtkBlunt: '<:offensiveblunt:939986712719949845>',
-    StandbyEvade: '<:counterevade:939986712803819551>',
-    StandbyGuard: '<:counterguard:939986712795443220>',
+    DefEvade: '<:defensiveevade:940003206648438824>',
+    DefGuard: '<:defensiveguard:940003206094782514>',
+    AtkSlash: '<:offensiveslash:940003206031872021>',
+    AtkPierce: '<:offensivepierce:940003206270976010>',
+    AtkBlunt: '<:offensiveblunt:940003205826367519>',
+    StandbyEvade: '<:counterevade:940003205654401067>',
+    StandbyGuard: '<:counterguard:940003205750870059>',
     StandbySlash: '<:counterslash:939986712833196112>',
-    StandbyPierce: '<:counterpierce:939986712766058556>',
-    StandbyBlunt: '<:counterblunt:939986712770256896>',
+    StandbyPierce: '<:counterpierce:940003206241599518>',
+    StandbyBlunt: '<:counterslash:940003205910249594>',
 };
 export const CARD_RARITY_COLOR_MAP: Record<string, string> = {
     Common: '#A8F29F',

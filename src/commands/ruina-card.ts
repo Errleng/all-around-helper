@@ -128,9 +128,14 @@ const command: Command = {
                 diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
             }
 
-            const text = `\`\`\`${getSyntaxForColor(
-                DICE_GROUP_COLOR_MAP[diceGroup]
-            )}\n${diceEmoji}[${diceRange}]\t${diceDesc}\n\`\`\``;
+            let text = '';
+            if (env.USE_COLORED_TEXT) {
+                text = `\`\`\`${getSyntaxForColor(
+                    DICE_GROUP_COLOR_MAP[diceGroup]
+                )}\n${diceEmoji}[${diceRange}]\t${diceDesc}\n\`\`\``;
+            } else {
+                text = `\n${diceEmoji}\t**${diceRange}**\t${diceDesc}`;
+            }
             cardText += text;
         });
 

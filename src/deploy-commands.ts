@@ -5,14 +5,20 @@ import {
 } from 'discord-api-types/v9';
 
 import * as dotenv from 'dotenv';
+import dotenvParseVariables from 'dotenv-parse-variables';
 import { COMMANDS_PATH } from './constants';
 import { importDefaults } from './utils';
 import { Command } from './types';
-dotenv.config();
 
-const token = process.env.BOT_TOKEN;
-const clientId = process.env.CLIENT_ID;
-const guildId = process.env.TEST_SERVER_ID;
+const rawEnv = dotenv.config();
+if (rawEnv.error || rawEnv.parsed === undefined) {
+    throw new Error(`Environment variable parsing error: ${rawEnv.error}`);
+}
+export const env = dotenvParseVariables(rawEnv.parsed) as NodeJS.ProcessEnv;
+
+const token = env.BOT_TOKEN;
+const clientId = env.CLIENT_ID;
+const guildId = env.TEST_SERVER_ID;
 
 const registerCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);

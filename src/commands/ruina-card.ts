@@ -6,9 +6,11 @@ import fetch from 'node-fetch';
 import {
     CARD_RARITY_COLOR_MAP,
     DICE_GROUP_COLOR_MAP,
-    DICE_TYPE_IMAGE_MAP,
+    DICE_TYPE_CUSTOM_EMOJI_MAP,
+    DICE_TYPE_EMOJI_MAP,
 } from '../constants';
 import { getSyntaxForColor } from '../utils';
+import { env } from '../index';
 
 let useCount = 0;
 
@@ -30,9 +32,9 @@ const command: Command = {
                 .setRequired(true)
         ),
     async execute(interaction: CommandInteraction) {
-        if (useCount >= process.env.REQUEST_LIMIT) {
+        if (useCount >= env.REQUEST_LIMIT) {
             await interaction.reply(
-                `Exceeded rate limit of ${process.env.REQUEST_LIMIT} requests per minute.`
+                `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`
             );
             return;
         }
@@ -42,7 +44,7 @@ const command: Command = {
             'An error occurred while trying to search for the card';
 
         const cardName = interaction.options.getString('cardname');
-        let url = `${process.env.DATABASE_URL}/lor/cards/?qn=${cardName}`;
+        let url = `${env.DATABASE_URL}/lor/cards/?qn=${cardName}`;
         let response = await fetch(url);
         console.log(`response 1 from ${url} is ${response}`);
         let responseBody = await response.text();
@@ -64,7 +66,7 @@ const command: Command = {
             return;
         }
 
-        url = `${process.env.DATABASE_URL}${cardDetailLink}`;
+        url = `${env.DATABASE_URL}${cardDetailLink}`;
         response = await fetch(url);
         console.log(`response 2 from ${url} is ${response}`);
         responseBody = await response.text();
@@ -117,11 +119,18 @@ const command: Command = {
                 // console.warn(`Dice description '${diceDesc}' is invalid!`);
                 diceDesc = '';
             }
+
+            const emojiKey = `${diceGroup}${diceType}`;
+            let diceEmoji = DICE_TYPE_EMOJI_MAP[emojiKey];
+            console.log('use custom emojis?', env.USE_CUSTOM_EMOJIS);
+            if (env.USE_CUSTOM_EMOJIS) {
+                console.log('using custom emojis');
+                diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
+            }
+
             const text = `\`\`\`${getSyntaxForColor(
                 DICE_GROUP_COLOR_MAP[diceGroup]
-            )}\n${
-                DICE_TYPE_IMAGE_MAP[diceType]
-            }[${diceRange}]\t${diceDesc}\n\`\`\``;
+            )}\n${diceEmoji}[${diceRange}]\t${diceDesc}\n\`\`\``;
             cardText += text;
         });
 
@@ -129,7 +138,7 @@ const command: Command = {
             cardImgUrl = '';
             console.warn(`Card ${closestCardName} has no image!`);
         } else {
-            cardImgUrl = `${process.env.DATABASE_URL}${cardImgUrl}`;
+            cardImgUrl = `${env.DATABASE_URL}${cardImgUrl}`;
         }
         const cardRarity = document
             .querySelector('.ent_info_table')

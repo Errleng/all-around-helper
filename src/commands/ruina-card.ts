@@ -7,13 +7,12 @@ import {
 } from 'discord.js';
 import { Command } from 'src/types';
 import { getCardData, getGuildChannelsFromIds } from '../utils';
-import { env } from '../index';
-import { ALLOWED_CHANNEL_IDS, ASSETS_PATH } from '../constants';
+import { ALLOWED_CHANNEL_IDS, ASSETS_PATH, env } from '../constants';
 
 let useCount = 0;
 setInterval(() => {
     if (useCount > 0) {
-        console.log(`reset useCount from ${useCount} to zero`);
+        console.log(`ruina-card reset useCount from ${useCount} to zero`);
     }
     useCount = 0;
 }, 1000 * 60);
@@ -22,15 +21,20 @@ const command: Command = {
     data: new SlashCommandBuilder()
         .setName('ruina-card')
         .setDescription('Replies with the Library of Ruina card')
+        .setDefaultPermission(true)
         .addStringOption((option) =>
             option
                 .setName('cardname')
                 .setDescription('The name of the card')
                 .setRequired(true)
         ),
+    permissions: [],
     async execute(interaction: CommandInteraction) {
         console.log(
-            `Command ${interaction.commandName} used in channel ${interaction.channel} (${interaction.channelId})`
+            `Command ${interaction.commandName} used in channel ${
+                interaction.guild?.channels.cache.get(interaction.channelId)
+                    ?.name
+            } (${interaction.channelId})`
         );
         if (
             interaction.guild &&
@@ -95,7 +99,7 @@ const command: Command = {
 
         const embed = new MessageEmbed()
             .setColor(card.rarityColor as ColorResolvable)
-            .setTitle(`\u200b${card.name}\t${card.cost}:bulb:`)
+            .setTitle(`${card.name}\t${card.cost}:bulb:`)
             .setDescription(card.description)
             .setImage(card.imageUrl)
             .setThumbnail(`attachment://${card.rangeFileName}`);
@@ -105,5 +109,4 @@ const command: Command = {
         });
     },
 };
-
 export default command;

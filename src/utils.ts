@@ -16,9 +16,9 @@ import {
     DICE_GROUP_COLOR_MAP,
     DICE_TYPE_CUSTOM_EMOJI_MAP,
     DICE_TYPE_EMOJI_MAP,
+    env,
 } from './constants';
 import * as Canvas from 'canvas';
-import { env } from './index';
 
 export const getFileNamesNoExt: (dirPath: string) => string[] = (dirPath) => {
     return fs
@@ -214,15 +214,19 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
 };
 
 export const createImage = async (cardName: string) => {
-    const canvas = Canvas.createCanvas(700, 250);
+    const card = await getCardData(cardName);
+    if (!card) {
+        throw new Error(`Card ${cardName} data is invalid`);
+    }
+
+    // card art is usually 410x310
+    const canvas = Canvas.createCanvas(410, 310);
     const context = canvas.getContext('2d');
-    const image = await Canvas.loadImage(
-        `${ASSETS_PATH}/images/counter-evade.png`
-    );
-    context.drawImage(image, 0, 0, 100, 100);
+    const cardImage = await Canvas.loadImage(card.imageUrl);
+    context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
     context.font = '32px sans-serif';
     context.fillStyle = '#fffff';
-    context.fillText(cardName, canvas.width / 2, canvas.height / 2);
+    context.fillText(cardName, canvas.width / 2, 40);
     const attachment = new MessageAttachment(
         canvas.toBuffer(),
         'card-image.png'

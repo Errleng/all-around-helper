@@ -3,23 +3,17 @@ import {
     RESTPostAPIApplicationCommandsJSONBody,
     Routes,
 } from 'discord-api-types/v9';
-
-import * as dotenv from 'dotenv';
-import dotenvParseVariables from 'dotenv-parse-variables';
-import { COMMANDS_PATH } from './constants';
+import { COMMANDS_PATH, env } from './constants';
 import { importDefaults } from './utils';
 import { Command } from './types';
-
-const rawEnv = dotenv.config();
-if (rawEnv.error || rawEnv.parsed === undefined) {
-    throw new Error(`Environment variable parsing error: ${rawEnv.error}`);
-}
-export const env = dotenvParseVariables(rawEnv.parsed) as NodeJS.ProcessEnv;
+import { ApplicationCommand, Client, Intents } from 'discord.js';
 
 const token = env.BOT_TOKEN;
 const clientId = env.CLIENT_ID;
 const guildId = env.TEST_SERVER_ID;
 
+const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+client.login(token);
 const registerCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);
     const commandsJson: RESTPostAPIApplicationCommandsJSONBody[] = commands.map(
@@ -30,23 +24,58 @@ const registerCommands = async () => {
 
     const rest = new REST({ version: '9' }).setToken(token);
 
-    rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
         body: commandsJson,
-    })
-        .then(() =>
-            console.log('Successfully registered application guild commands.')
-        )
-        .catch(console.error);
+    });
+    console.log('Successfully registered application guild commands');
 
-    return;
-
-    rest.put(Routes.applicationCommands(clientId), {
+    await rest.put(Routes.applicationCommands(clientId), {
         body: commandsJson,
-    })
-        .then(() =>
-            console.log('Successfully registered application commands.')
-        )
-        .catch(console.error);
+    });
+
+    console.log('Successfully registered application commands');
+    const registeredCommands = await client.application?.commands.fetch();
+    if (!registeredCommands) {
+        console.error('Could not get registered commands');
+        return;
+    }
+    const guilds = await client.guilds.fetch();
+    guilds.forEach((guild) => {
+        registeredCommands.forEach(async (command) => {
+            const commandData = commands.find(
+                (x) => x.data.name === command.name
+            );
+            if (!commandData) {
+                console.warn(`Could not find command ${command.name}`);
+                return;
+            }
+            if (!commandData.permissions) {
+                return;
+            }
+            const newPermissions = await command.permissions.set({
+                guild: guild.id,
+                permissions: commandData.permissions,
+            });
+            console.log(
+                `Updated permissions for command "${command.name}" in guild "${guild.name}"`,
+                command.defaultPermission,
+                newPermissions
+            );
+        });
+    });
 };
 
-registerCommands();
+const unregisterCommands = async () => {
+    const commands = await client.application?.commands.fetch();
+    const promises: Promise<ApplicationCommand>[] = [];
+    commands?.forEach((command) => {
+        promises.push(command.delete());
+    });
+    Promise.all(promises).then(() => {
+        console.log('Successfully deleted application commands');
+    });
+};
+
+client.on('ready', async () => {
+    registerCommands();
+});

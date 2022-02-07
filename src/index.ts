@@ -1,15 +1,7 @@
-import * as dotenv from 'dotenv';
-import dotenvParseVariables from 'dotenv-parse-variables';
 import { Client, Collection, Intents } from 'discord.js';
-import { COMMANDS_PATH, EVENTS_PATH } from './constants';
+import { COMMANDS_PATH, env, EVENTS_PATH } from './constants';
 import { ClientEvent, Command } from './types';
 import { importDefaults } from './utils';
-
-const rawEnv = dotenv.config();
-if (rawEnv.error || rawEnv.parsed === undefined) {
-    throw new Error(`Environment variable parsing error: ${rawEnv.error}`);
-}
-export const env = dotenvParseVariables(rawEnv.parsed) as NodeJS.ProcessEnv;
 
 const token = env.BOT_TOKEN;
 

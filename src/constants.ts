@@ -1,4 +1,13 @@
 import { ColorResolvable } from 'discord.js';
+import * as dotenv from 'dotenv';
+import dotenvParseVariables from 'dotenv-parse-variables';
+
+const rawEnv = dotenv.config();
+if (rawEnv.error || rawEnv.parsed === undefined) {
+    throw new Error(`Environment variable parsing error: ${rawEnv.error}`);
+}
+
+export const env = dotenvParseVariables(rawEnv.parsed) as NodeJS.ProcessEnv;
 
 export const ALLOWED_CHANNEL_IDS = ['770488167719501867', '936394221940772864'];
 

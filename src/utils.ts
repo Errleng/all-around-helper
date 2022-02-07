@@ -18,7 +18,7 @@ import {
     DICE_TYPE_EMOJI_MAP,
 } from './constants';
 import * as Canvas from 'canvas';
-import { env } from 'src';
+import { env } from './index';
 
 export const getFileNamesNoExt: (dirPath: string) => string[] = (dirPath) => {
     return fs

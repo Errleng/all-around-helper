@@ -39,11 +39,14 @@ const command: Command = {
             const channelNames = getGuildChannelsFromIds(
                 interaction.guild,
                 ALLOWED_CHANNEL_IDS
-            ).map((channel) => channel.name);
+            ).map((channel) => `#${channel.name}`);
             await interaction.reply({
-                content: `This bot is restricted to the channels ${channelNames}`,
+                content: `This bot is restricted to the channels \`${channelNames.join(
+                    ', '
+                )}\``,
                 ephemeral: true,
             });
+            return;
         }
 
         if (useCount >= env.REQUEST_LIMIT) {
@@ -55,12 +58,15 @@ const command: Command = {
         }
         ++useCount;
 
-        const errorMessage =
-            'An error occurred while trying to search for the card';
         const cardName = interaction.options.getString('cardname');
+        const errorMessage = `An error occurred while trying to search for the card "${cardName}"`;
+
         if (!cardName) {
             console.error('Invalid card name', cardName);
-            await interaction.reply('Card name is invalid');
+            await interaction.reply({
+                content: 'Card name is invalid',
+                ephemeral: true,
+            });
             return;
         }
 
@@ -68,14 +74,18 @@ const command: Command = {
         try {
             card = await getCardData(cardName);
         } catch (e) {
-            console.error('Error while getting card data', e);
-            await interaction.reply(errorMessage);
+            if (e instanceof Error) {
+                console.error('Error while getting card data', e.message, e);
+            } else {
+                console.error('Error while getting card data', e);
+            }
+            await interaction.reply({ content: errorMessage, ephemeral: true });
             return;
         }
 
         if (!card) {
             console.error('Card data is invalid:', card);
-            await interaction.reply(errorMessage);
+            await interaction.reply({ content: errorMessage, ephemeral: true });
             return;
         }
 

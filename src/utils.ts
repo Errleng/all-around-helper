@@ -10,7 +10,6 @@ import { Card } from './types';
 import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
 import {
-    ASSETS_PATH,
     CARD_RANGE_IMAGE_MAP,
     CARD_RARITY_COLOR_MAP,
     DICE_GROUP_COLOR_MAP,

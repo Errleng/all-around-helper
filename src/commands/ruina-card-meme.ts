@@ -7,16 +7,18 @@ import { createImage, getGuildChannelsFromIds } from '../utils';
 let useCount = 0;
 setInterval(() => {
     if (useCount > 0) {
-        console.log(`ruina-card-image reset useCount from ${useCount} to zero`);
+        console.log(`ruina-card-meme reset useCount from ${useCount} to zero`);
     }
     useCount = 0;
 }, 1000 * 60);
 
 const command: Command = {
     data: new SlashCommandBuilder()
-        .setName('ruina-card-image')
-        .setDescription('Generates an image of a Library of Ruina card')
-        .setDefaultPermission(false)
+        .setName('ruina-card-meme')
+        .setDescription(
+            'Generates a TOP TEXT BOTTOM TEXT meme of a Library of Ruina card art'
+        )
+        .setDefaultPermission(true)
         .addStringOption((option) =>
             option
                 .setName('cardname')
@@ -106,8 +108,7 @@ const command: Command = {
         console.log('image attachment', imageAttachment);
 
         await interaction.reply({
-            content: 'not implemented',
-            ephemeral: true,
+            files: [imageAttachment],
         });
     },
 };

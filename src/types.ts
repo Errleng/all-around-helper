@@ -1,19 +1,21 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import {
     ApplicationCommandPermissionData,
+    CacheType,
     CommandInteraction,
+    Interaction,
 } from 'discord.js';
 
 export interface Command {
-    data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder;
     permissions: ApplicationCommandPermissionData[];
+    data: Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
     execute: (interaction: CommandInteraction) => Promise<void>;
 }
 
 export interface ClientEvent {
     name: string;
     once: boolean;
-    execute: (...interaction: Interaction<CacheType>) => void;
+    execute: (args: Interaction<CacheType>) => void;
 }
 
 export interface Card {
@@ -24,4 +26,25 @@ export interface Card {
     rangeFileName: string;
     imageUrl: string;
     rarityColor: string;
+    dice: Dice[];
+}
+
+export interface Dice {
+    category: DiceCategory;
+    type: DiceType;
+    roll: string;
+    desc: string;
+}
+
+export enum DiceCategory {
+    Offensive,
+    Defensive,
+    Counter,
+}
+export enum DiceType {
+    Slash,
+    Pierce,
+    Blunt,
+    Guard,
+    Evade,
 }

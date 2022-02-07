@@ -1,23 +1,20 @@
 import {
     ColorResolvable,
+    CommandInteraction,
     Guild,
     GuildBasedChannel,
-    MessageAttachment,
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
-import { Card } from './types';
+import { Card, Dice, DiceCategory, DiceType } from './types';
 import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
 import {
+    ALLOWED_CHANNEL_IDS,
     CARD_RANGE_IMAGE_MAP,
     CARD_RARITY_COLOR_MAP,
-    DICE_GROUP_COLOR_MAP,
-    DICE_TYPE_CUSTOM_EMOJI_MAP,
-    DICE_TYPE_EMOJI_MAP,
     env,
 } from './constants';
-import * as Canvas from 'canvas';
 
 export const getFileNamesNoExt: (dirPath: string) => string[] = (dirPath) => {
     return fs
@@ -122,17 +119,14 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         cardImgUrl = `${env.DATABASE_URL}${cardImgUrl}`;
     }
 
-    let cardText = document.querySelector(
+    const cardDesc = document.querySelector(
         '.card_script[data-lang="en"]'
     )?.textContent;
 
-    if (cardText === null || cardText === undefined) {
+    if (cardDesc === null || cardDesc === undefined) {
         throw new Error(
             `Card ${closestCardName} has null or undefined description!`
         );
-    }
-    if (cardText.length > 0) {
-        cardText += '\n';
     }
 
     const cardCost = document.querySelector('.card_cost')?.textContent;
@@ -140,26 +134,27 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         throw new Error(`Card ${closestCardName} cost is invalid!`);
     }
 
-    const cardDice = document.querySelectorAll('.card_back .card_dice');
-    cardDice.forEach((dice) => {
-        const diceGroup = dice.getAttribute('data-type');
-        const diceType = dice.getAttribute('data-detail');
-        const diceRolls = dice
+    const cardDice: Dice[] = [];
+    const cardDiceElems = document.querySelectorAll('.card_back .card_dice');
+    cardDiceElems.forEach((diceElem) => {
+        const diceCategory = diceElem.getAttribute('data-type');
+        const diceType = diceElem.getAttribute('data-detail');
+        const diceRoll = diceElem
             .querySelector('.card_dice_range')
             ?.textContent?.replace(' - ', '~');
-        let diceDesc = dice.querySelector(
+        let diceDesc = diceElem.querySelector(
             '.card_dice_desc span[data-lang="en"]:not(:empty)'
         )?.textContent;
-        if (!diceGroup) {
-            console.warn(`Dice group '${diceGroup}' is invalid!`);
+        if (!diceCategory) {
+            console.warn(`Dice category '${diceCategory}' is invalid!`);
             return;
         }
         if (!diceType) {
             console.warn(`Dice type '${diceType}' is invalid!`);
             return;
         }
-        if (!diceRolls) {
-            console.warn(`Dice range '${diceRolls}' is invalid!`);
+        if (!diceRoll) {
+            console.warn(`Dice range '${diceRoll}' is invalid!`);
             return;
         }
         if (!diceDesc) {
@@ -167,21 +162,26 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
             diceDesc = '';
         }
 
-        const emojiKey = `${diceGroup}${diceType}`;
-        let diceEmoji = DICE_TYPE_EMOJI_MAP[emojiKey];
-        if (env.USE_CUSTOM_EMOJIS) {
-            diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
-        }
+        const diceCategoryMap: Record<string, DiceCategory> = {
+            Atk: DiceCategory.Offensive,
+            Def: DiceCategory.Defensive,
+            Standby: DiceCategory.Counter,
+        };
+        const diceTypeMap: Record<string, DiceType> = {
+            Slash: DiceType.Slash,
+            Pierce: DiceType.Pierce,
+            Blunt: DiceType.Blunt,
+            Guard: DiceType.Guard,
+            Evade: DiceType.Evade,
+        };
 
-        let text = '';
-        if (env.USE_COLORED_TEXT) {
-            text = `\`\`\`${getSyntaxForColor(
-                DICE_GROUP_COLOR_MAP[diceGroup]
-            )}\n${diceEmoji}[${diceRolls}]\t${diceDesc}\n\`\`\``;
-        } else {
-            text = `\n${diceEmoji}\t\t\t**${diceRolls}**\t\t\t${diceDesc}`;
-        }
-        cardText += text;
+        const dice: Dice = {
+            category: diceCategoryMap[diceCategory],
+            type: diceTypeMap[diceType],
+            roll: diceRoll,
+            desc: diceDesc,
+        };
+        cardDice.push(dice);
     });
 
     const cardRange = document
@@ -203,80 +203,53 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
     const card: Card = {
         name: closestCardName,
         cost: cardCost,
-        description: cardText,
+        description: cardDesc,
         range: cardRange,
         rangeFileName: cardRangeImageFileName,
         imageUrl: cardImgUrl,
         rarityColor: cardRarityColor,
+        dice: cardDice,
     };
     return card;
 };
 
-export const createImage = async (
-    cardName: string,
-    topText: string,
-    bottomText: string
-) => {
-    const card = await getCardData(cardName);
-    if (!card) {
-        throw new Error(`Card ${cardName} data is invalid`);
+let useCount = 0;
+setInterval(() => {
+    if (useCount > 0) {
+        console.log(`ruina-card-meme reset useCount from ${useCount} to zero`);
     }
-
-    // card art is usually 410x310
-    const canvas = Canvas.createCanvas(410, 310);
-    const context = canvas.getContext('2d');
-    const cardImage = await Canvas.loadImage(card.imageUrl);
-
-    const topTextHeight = 40;
-    const bottomTextHeight = 290;
-    const lineHeight = 30;
-
-    context.font = '32px Impact';
-    context.fillStyle = '#FFFFFF';
-    context.strokeStyle = '#000000';
-
-    context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
-
-    context.textAlign = 'center';
-    context.lineWidth = 5;
-    const topTextLines = getLines(context, topText, canvas.width);
-    for (let i = 0; i < topTextLines.length; i++) {
-        const line = topTextLines[i];
-        context.strokeText(
-            line,
-            canvas.width / 2,
-            topTextHeight + i * lineHeight
-        );
-        context.fillText(
-            line,
-            canvas.width / 2,
-            topTextHeight + i * lineHeight
-        );
-    }
-    const bottomTextLines = getLines(context, bottomText, canvas.width);
-    for (let i = 0; i < bottomTextLines.length; i++) {
-        const line = bottomTextLines[i];
-        context.strokeText(
-            line,
-            canvas.width / 2,
-            bottomTextHeight + i * lineHeight
-        );
-        context.fillText(
-            line,
-            canvas.width / 2,
-            bottomTextHeight + i * lineHeight
-        );
-    }
-
-    const attachment = new MessageAttachment(
-        canvas.toBuffer(),
-        'card-image.png'
+    useCount = 0;
+}, 1000 * 60);
+export const onCommandInteraction = (interaction: CommandInteraction) => {
+    console.log(
+        `Command ${interaction.commandName} used in channel ${
+            interaction.guild?.channels.cache.get(interaction.channelId)?.name
+        } (${interaction.channelId})`
     );
+    if (
+        interaction.guild &&
+        !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
+    ) {
+        const channelNames = getGuildChannelsFromIds(
+            interaction.guild,
+            ALLOWED_CHANNEL_IDS
+        ).map((channel) => `#${channel.name}`);
+        throw new Error(
+            `This bot is restricted to the channels \`${channelNames.join(
+                ', '
+            )}\``
+        );
+    }
 
-    return attachment;
+    if (useCount >= env.REQUEST_LIMIT) {
+        throw new Error(
+            `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`
+        );
+    }
+    ++useCount;
 };
 
-const getLines = (
+export const getCanvasLines = (
     ctx: CanvasRenderingContext2D,
     text: string,
     maxWidth: number

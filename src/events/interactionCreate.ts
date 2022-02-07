@@ -1,10 +1,11 @@
 import { commandsDict } from '../index';
-import { ClientEvent } from 'src/types';
+import { ClientEvent } from '../types';
+import { CacheType, Interaction } from 'discord.js';
 
 const event: ClientEvent = {
     name: 'interactionCreate',
     once: false,
-    async execute(interaction) {
+    async execute(interaction: Interaction<CacheType>) {
         if (!interaction.isCommand()) return;
         const command = commandsDict.get(interaction.commandName);
 

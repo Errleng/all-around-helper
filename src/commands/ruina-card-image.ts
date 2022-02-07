@@ -1,18 +1,18 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction } from 'discord.js';
-import { ALLOWED_CHANNEL_IDS, env } from '../constants';
-import { Command } from 'src/types';
-import { createImage, getGuildChannelsFromIds } from '../utils';
-
-let useCount = 0;
-setInterval(() => {
-    if (useCount > 0) {
-        console.log(`ruina-card-image reset useCount from ${useCount} to zero`);
-    }
-    useCount = 0;
-}, 1000 * 60);
+import { CommandInteraction, MessageAttachment } from 'discord.js';
+import { env } from '../constants';
+import { Command } from '../types';
+import { getCanvasLines, getCardData, onCommandInteraction } from '../utils';
+import * as Canvas from 'canvas';
 
 const command: Command = {
+    permissions: [
+        {
+            id: env.DEV_USER,
+            type: 'USER',
+            permission: true,
+        },
+    ],
     data: new SlashCommandBuilder()
         .setName('ruina-card-image')
         .setDescription('Generates an image of a Library of Ruina card')
@@ -22,58 +22,24 @@ const command: Command = {
                 .setName('cardname')
                 .setDescription('The name of the card')
                 .setRequired(true)
-        )
-        .addStringOption((option) =>
-            option
-                .setName('toptext')
-                .setDescription('The text at the top of the image')
-                .setRequired(false)
-        )
-        .addStringOption((option) =>
-            option
-                .setName('bottomtext')
-                .setDescription('The text at the bottom of the image')
-                .setRequired(false)
         ),
-    permissions: [
-        {
-            id: env.DEV_USER,
-            type: 'USER',
-            permission: true,
-        },
-    ],
     async execute(interaction: CommandInteraction) {
-        console.log(
-            `Command ${interaction.commandName} used in channel ${
-                interaction.guild?.channels.cache.get(interaction.channelId)
-                    ?.name
-            } (${interaction.channelId})`
-        );
-        if (
-            interaction.guild &&
-            !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
-        ) {
-            const channelNames = getGuildChannelsFromIds(
-                interaction.guild,
-                ALLOWED_CHANNEL_IDS
-            ).map((channel) => `#${channel.name}`);
-            await interaction.reply({
-                content: `This bot is restricted to the channels \`${channelNames.join(
-                    ', '
-                )}\``,
-                ephemeral: true,
-            });
-            return;
+        try {
+            onCommandInteraction(interaction);
+        } catch (e) {
+            if (e instanceof Error) {
+                await interaction.reply({
+                    content: e.message,
+                    ephemeral: true,
+                });
+            } else {
+                console.error('Error in command interaction hook!', e);
+                await interaction.reply({
+                    content: 'An error occurred while validating this command',
+                    ephemeral: true,
+                });
+            }
         }
-
-        if (useCount >= env.REQUEST_LIMIT) {
-            await interaction.reply({
-                content: `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`,
-                ephemeral: true,
-            });
-            return;
-        }
-        ++useCount;
 
         const cardName = interaction.options.getString('cardname');
         const errorMessage = `An error occurred while trying to search for the card "${cardName}"`;
@@ -86,13 +52,9 @@ const command: Command = {
             return;
         }
 
-        let imageAttachment = null;
+        let card = null;
         try {
-            const topText =
-                interaction.options.getString('toptext') ?? 'TOP TEXT';
-            const bottomText =
-                interaction.options.getString('bottomtext') ?? 'BOTTOM TEXT';
-            imageAttachment = await createImage(cardName, topText, bottomText);
+            card = await getCardData(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -103,11 +65,74 @@ const command: Command = {
             return;
         }
 
-        console.log('image attachment', imageAttachment);
+        if (!card) {
+            console.error('Card data is invalid:', card);
+            await interaction.reply({ content: errorMessage, ephemeral: true });
+            return;
+        }
+
+        const topTextHeight = 30;
+        const bottomTextHeight = 290;
+        let lineHeight = 32;
+        // card art is usually 410x310
+        const canvas = Canvas.createCanvas(610, 410);
+        const context = canvas.getContext('2d');
+        const cardImage = await Canvas.loadImage(card.imageUrl);
+
+        context.font = '32px sans-serif';
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        context.fillStyle = 'white';
+        context.strokeStyle = 'black';
+        context.textAlign = 'center';
+        context.lineWidth = 5;
+
+        context.drawImage(cardImage, 0, 50, 410, 310);
+        context.strokeText(card.name, canvas.width / 2, topTextHeight);
+        context.fillText(card.name, canvas.width / 2, topTextHeight);
+
+        context.font = '12px sans-serif';
+        const cardDescLines = getCanvasLines(
+            context,
+            card.description,
+            canvas.width
+        );
+        for (let i = 0; i < cardDescLines.length; i++) {
+            const line = cardDescLines[i];
+            const lineY =
+                bottomTextHeight -
+                (cardDescLines.length - 1) * lineHeight +
+                i * lineHeight;
+            context.strokeText(line, canvas.width / 2, lineY);
+            context.fillText(line, canvas.width / 2, lineY);
+        }
+
+        context.textAlign = 'left';
+        lineHeight = 12;
+        // for (const dice of card.dice) {
+        //     const lineX = 430;
+        // const lineY = 50;
+        // const descLines = getCanvasLines(
+        //     context,
+        //     dice.desc,
+        //     canvas.width - lineX
+        // );
+        // for (let i = 0; i < descLines.length; i++) {
+        //     const line = descLines[i];
+        //     context.fillText(line, lineX, lineY + i * lineHeight);
+        // }
+        // }
+
+        const attachment = new MessageAttachment(
+            canvas.toBuffer(),
+            'card-image.png'
+        );
+
+        console.log('image attachment', attachment);
 
         await interaction.reply({
-            content: 'not implemented',
-            ephemeral: true,
+            files: [attachment],
         });
     },
 };

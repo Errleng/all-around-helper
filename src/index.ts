@@ -21,9 +21,9 @@ const setupEvents = async () => {
     const events = await importDefaults<ClientEvent>(EVENTS_PATH);
     for (const event of events) {
         if (event.once) {
-            client.once(event.name, (...args) => event.execute(...args));
+            client.once(event.name, (args) => event.execute(args));
         } else {
-            client.on(event.name, (...args) => event.execute(...args));
+            client.on(event.name, (args) => event.execute(args));
         }
     }
 };

@@ -5,9 +5,15 @@ import {
     MessageAttachment,
     MessageEmbed,
 } from 'discord.js';
-import { Command } from 'src/types';
-import { getCardData, getGuildChannelsFromIds } from '../utils';
-import { ALLOWED_CHANNEL_IDS, ASSETS_PATH, env } from '../constants';
+import { Command, DiceCategory, DiceType } from '../types';
+import { getCardData, getSyntaxForColor, onCommandInteraction } from '../utils';
+import {
+    ASSETS_PATH,
+    DICE_GROUP_COLOR_MAP,
+    DICE_TYPE_CUSTOM_EMOJI_MAP,
+    DICE_TYPE_EMOJI_MAP,
+    env,
+} from '../constants';
 
 let useCount = 0;
 setInterval(() => {
@@ -18,6 +24,7 @@ setInterval(() => {
 }, 1000 * 60);
 
 const command: Command = {
+    permissions: [],
     data: new SlashCommandBuilder()
         .setName('ruina-card')
         .setDescription('Replies with the Library of Ruina card')
@@ -28,39 +35,23 @@ const command: Command = {
                 .setDescription('The name of the card')
                 .setRequired(true)
         ),
-    permissions: [],
     async execute(interaction: CommandInteraction) {
-        console.log(
-            `Command ${interaction.commandName} used in channel ${
-                interaction.guild?.channels.cache.get(interaction.channelId)
-                    ?.name
-            } (${interaction.channelId})`
-        );
-        if (
-            interaction.guild &&
-            !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
-        ) {
-            const channelNames = getGuildChannelsFromIds(
-                interaction.guild,
-                ALLOWED_CHANNEL_IDS
-            ).map((channel) => `#${channel.name}`);
-            await interaction.reply({
-                content: `This bot is restricted to the channels \`${channelNames.join(
-                    ', '
-                )}\``,
-                ephemeral: true,
-            });
-            return;
+        try {
+            onCommandInteraction(interaction);
+        } catch (e) {
+            if (e instanceof Error) {
+                await interaction.reply({
+                    content: e.message,
+                    ephemeral: true,
+                });
+            } else {
+                console.error('Error in command interaction hook!', e);
+                await interaction.reply({
+                    content: 'An error occurred while validating this command',
+                    ephemeral: true,
+                });
+            }
         }
-
-        if (useCount >= env.REQUEST_LIMIT) {
-            await interaction.reply({
-                content: `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`,
-                ephemeral: true,
-            });
-            return;
-        }
-        ++useCount;
 
         const cardName = interaction.options.getString('cardname');
         const errorMessage = `An error occurred while trying to search for the card "${cardName}"`;
@@ -96,11 +87,32 @@ const command: Command = {
         const cardRangeImage = new MessageAttachment(
             `${ASSETS_PATH}/images/${card.rangeFileName}`
         );
+        let text = card.description;
+        if (text.length > 0) {
+            text += '\n';
+        }
+
+        card.dice.forEach((dice) => {
+            const diceCategory: string = DiceCategory[dice.category];
+            const diceType: string = DiceType[dice.type];
+            const emojiKey = `${diceCategory}${diceType}`;
+            let diceEmoji = DICE_TYPE_EMOJI_MAP[emojiKey];
+            if (env.USE_CUSTOM_EMOJIS) {
+                diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
+            }
+            if (env.USE_COLORED_TEXT) {
+                text += `\`\`\`${getSyntaxForColor(
+                    DICE_GROUP_COLOR_MAP[diceCategory]
+                )}\n${diceEmoji}[${dice.roll}]\t${dice.desc}\n\`\`\``;
+            } else {
+                text += `\n${diceEmoji}\t\t\t**${dice.roll}**\t\t\t${dice.desc}`;
+            }
+        });
 
         const embed = new MessageEmbed()
             .setColor(card.rarityColor as ColorResolvable)
             .setTitle(`${card.name}\t${card.cost}:bulb:`)
-            .setDescription(card.description)
+            .setDescription(text)
             .setImage(card.imageUrl)
             .setThumbnail(`attachment://${card.rangeFileName}`);
         await interaction.reply({

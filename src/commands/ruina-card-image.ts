@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction } from 'discord.js';
 import { ALLOWED_CHANNEL_IDS, env } from '../constants';
 import { Command } from 'src/types';
-import { createImage, getCardData, getGuildChannelsFromIds } from '../utils';
+import { createImage, getGuildChannelsFromIds } from '../utils';
 
 let useCount = 0;
 setInterval(() => {
@@ -22,6 +22,18 @@ const command: Command = {
                 .setName('cardname')
                 .setDescription('The name of the card')
                 .setRequired(true)
+        )
+        .addStringOption((option) =>
+            option
+                .setName('toptext')
+                .setDescription('The text at the top of the image')
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName('bottomtext')
+                .setDescription('The text at the bottom of the image')
+                .setRequired(false)
         ),
     permissions: [
         {
@@ -76,7 +88,11 @@ const command: Command = {
 
         let imageAttachment = null;
         try {
-            imageAttachment = await createImage(cardName);
+            const topText =
+                interaction.options.getString('toptext') ?? 'TOP TEXT';
+            const bottomText =
+                interaction.options.getString('bottomtext') ?? 'BOTTOM TEXT';
+            imageAttachment = await createImage(cardName, topText, bottomText);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);

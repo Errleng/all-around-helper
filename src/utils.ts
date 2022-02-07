@@ -213,7 +213,11 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
     return card;
 };
 
-export const createImage = async (cardName: string) => {
+export const createImage = async (
+    cardName: string,
+    topText: string,
+    bottomText: string
+) => {
     const card = await getCardData(cardName);
     if (!card) {
         throw new Error(`Card ${cardName} data is invalid`);
@@ -223,13 +227,75 @@ export const createImage = async (cardName: string) => {
     const canvas = Canvas.createCanvas(410, 310);
     const context = canvas.getContext('2d');
     const cardImage = await Canvas.loadImage(card.imageUrl);
+
+    const topTextHeight = 40;
+    const bottomTextHeight = 290;
+    const lineHeight = 30;
+
+    context.font = '32px Impact';
+    context.fillStyle = '#FFFFFF';
+    context.strokeStyle = '#000000';
+
     context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
-    context.font = '32px sans-serif';
-    context.fillStyle = '#fffff';
-    context.fillText(cardName, canvas.width / 2, 40);
+
+    context.textAlign = 'center';
+    context.lineWidth = 5;
+    const topTextLines = getLines(context, topText, canvas.width);
+    for (let i = 0; i < topTextLines.length; i++) {
+        const line = topTextLines[i];
+        context.strokeText(
+            line,
+            canvas.width / 2,
+            topTextHeight + i * lineHeight
+        );
+        context.fillText(
+            line,
+            canvas.width / 2,
+            topTextHeight + i * lineHeight
+        );
+    }
+    const bottomTextLines = getLines(context, bottomText, canvas.width);
+    for (let i = 0; i < bottomTextLines.length; i++) {
+        const line = bottomTextLines[i];
+        context.strokeText(
+            line,
+            canvas.width / 2,
+            bottomTextHeight + i * lineHeight
+        );
+        context.fillText(
+            line,
+            canvas.width / 2,
+            bottomTextHeight + i * lineHeight
+        );
+    }
+
     const attachment = new MessageAttachment(
         canvas.toBuffer(),
         'card-image.png'
     );
+
     return attachment;
+};
+
+const getLines = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    maxWidth: number
+) => {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = ctx.measureText(currentLine + ' ' + word).width;
+        if (width < maxWidth) {
+            currentLine += ' ' + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+    return lines;
 };

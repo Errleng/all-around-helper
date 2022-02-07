@@ -6,21 +6,11 @@ import {
     MessageEmbed,
 } from 'discord.js';
 import { Command } from 'src/types';
-import { JSDOM } from 'jsdom';
-import fetch from 'node-fetch';
-import {
-    ASSETS_PATH,
-    CARD_RANGE_IMAGE_MAP,
-    CARD_RARITY_COLOR_MAP,
-    DICE_GROUP_COLOR_MAP,
-    DICE_TYPE_CUSTOM_EMOJI_MAP,
-    DICE_TYPE_EMOJI_MAP,
-} from '../constants';
-import { getSyntaxForColor } from '../utils';
+import { getCardData, getGuildChannelsFromIds } from '../utils';
 import { env } from '../index';
+import { ALLOWED_CHANNEL_IDS, ASSETS_PATH } from '../constants';
 
 let useCount = 0;
-
 setInterval(() => {
     if (useCount > 0) {
         console.log(`reset useCount from ${useCount} to zero`);
@@ -39,152 +29,66 @@ const command: Command = {
                 .setRequired(true)
         ),
     async execute(interaction: CommandInteraction) {
+        console.log(
+            `Command ${interaction.commandName} used in channel ${interaction.channel} (${interaction.channelId})`
+        );
+        if (
+            interaction.guild &&
+            !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
+        ) {
+            const channelNames = getGuildChannelsFromIds(
+                interaction.guild,
+                ALLOWED_CHANNEL_IDS
+            ).map((channel) => channel.name);
+            await interaction.reply({
+                content: `This bot is restricted to the channels ${channelNames}`,
+                ephemeral: true,
+            });
+        }
+
         if (useCount >= env.REQUEST_LIMIT) {
-            await interaction.reply(
-                `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`
-            );
+            await interaction.reply({
+                content: `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`,
+                ephemeral: true,
+            });
             return;
         }
         ++useCount;
 
         const errorMessage =
             'An error occurred while trying to search for the card';
-
         const cardName = interaction.options.getString('cardname');
-        let url = `${env.DATABASE_URL}/lor/cards/?qn=${cardName}`;
-        let response = await fetch(url);
-        console.log(`response 1 from ${url} is ${response}`);
-        let responseBody = await response.text();
-        let { document } = new JSDOM(responseBody).window;
-        if (document === null) {
-            console.warn('document 1 is null');
+        if (!cardName) {
+            console.error('Invalid card name', cardName);
+            await interaction.reply('Card name is invalid');
+            return;
+        }
+
+        let card = null;
+        try {
+            card = await getCardData(cardName);
+        } catch (e) {
+            console.error('Error while getting card data', e);
             await interaction.reply(errorMessage);
             return;
         }
 
-        const cardDetailLink = document
-            .querySelector('.card_title')
-            ?.querySelector('a')?.href;
-        if (cardDetailLink === undefined) {
-            console.warn(
-                `Could not get link to detail page for card ${cardName}`
-            );
-            await interaction.reply(`No card matches ${cardName}`);
-            return;
-        }
-
-        url = `${env.DATABASE_URL}${cardDetailLink}`;
-        response = await fetch(url);
-        console.log(`response 2 from ${url} is ${response}`);
-        responseBody = await response.text();
-
-        document = new JSDOM(responseBody).window.document;
-        if (document === null) {
-            console.warn('document 2 is null');
+        if (!card) {
+            console.error('Card data is invalid:', card);
             await interaction.reply(errorMessage);
             return;
         }
 
-        const closestCardName = document
-            .querySelector('.card_title')
-            ?.querySelector('span[data-lang="en"]')?.textContent;
-
-        let cardImgUrl = document
-            .querySelector('[data-label="Artwork"]')
-            ?.querySelector('img')?.src;
-        let cardText = document.querySelector(
-            '.card_script[data-lang="en"]'
-        )?.textContent;
-        const cardCost = document.querySelector('.card_cost')?.textContent;
-        const cardDice = document.querySelectorAll('.card_back .card_dice');
-        const cardRange = document
-            .querySelector('.card_range .icon')
-            ?.getAttribute('title');
-
-        if (!cardText) {
-            cardText = '';
-        }
-        if (cardText.length > 0) {
-            cardText += '\n';
-        }
-
-        cardDice.forEach((dice) => {
-            const diceGroup = dice.getAttribute('data-type');
-            const diceType = dice.getAttribute('data-detail');
-            const diceRange = dice
-                .querySelector('.card_dice_range')
-                ?.textContent?.replace(' - ', '~');
-            let diceDesc = dice.querySelector(
-                '.card_dice_desc span[data-lang="en"]:not(:empty)'
-            )?.textContent;
-            if (!diceGroup) {
-                console.warn(`Dice group '${diceGroup}' is invalid!`);
-                return;
-            }
-            if (!diceType) {
-                console.warn(`Dice type '${diceType}' is invalid!`);
-                return;
-            }
-            if (!diceRange) {
-                console.warn(`Dice range '${diceRange}' is invalid!`);
-                return;
-            }
-            if (!diceDesc) {
-                // console.warn(`Dice description '${diceDesc}' is invalid!`);
-                diceDesc = '';
-            }
-
-            const emojiKey = `${diceGroup}${diceType}`;
-            let diceEmoji = DICE_TYPE_EMOJI_MAP[emojiKey];
-            if (env.USE_CUSTOM_EMOJIS) {
-                diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
-            }
-
-            let text = '';
-            if (env.USE_COLORED_TEXT) {
-                text = `\`\`\`${getSyntaxForColor(
-                    DICE_GROUP_COLOR_MAP[diceGroup]
-                )}\n${diceEmoji}[${diceRange}]\t${diceDesc}\n\`\`\``;
-            } else {
-                text = `\n${diceEmoji}\t\t\t**${diceRange}**\t\t\t${diceDesc}`;
-            }
-            cardText += text;
-        });
-
-        if (!cardImgUrl) {
-            cardImgUrl = '';
-            console.warn(`Card ${closestCardName} has no image!`);
-        } else {
-            cardImgUrl = `${env.DATABASE_URL}${cardImgUrl}`;
-        }
-        const cardRarity = document
-            .querySelector('.ent_info_table')
-            ?.getAttribute('data-rarity');
-        if (!cardRarity) {
-            console.error(`Unknown card rarity: ${cardRarity}`);
-            await interaction.reply(errorMessage);
-            return;
-        }
-        const cardRarityColor = CARD_RARITY_COLOR_MAP[
-            cardRarity
-        ] as ColorResolvable;
-
-        if (!cardRange) {
-            console.warn(`Unknown card range: ${cardRange}`);
-            await interaction.reply(errorMessage);
-            return;
-        }
-        const cardRangeImageFileName = CARD_RANGE_IMAGE_MAP[cardRange];
         const cardRangeImage = new MessageAttachment(
-            `${ASSETS_PATH}/images/${cardRangeImageFileName}`
+            `${ASSETS_PATH}/images/${card.rangeFileName}`
         );
 
         const embed = new MessageEmbed()
-            .setColor(cardRarityColor)
-            .setTitle(`\u200b${closestCardName}\t${cardCost}:bulb:`)
-            .setDescription(cardText)
-            .setImage(cardImgUrl)
-            .setThumbnail(`attachment://${cardRangeImageFileName}`);
+            .setColor(card.rarityColor as ColorResolvable)
+            .setTitle(`\u200b${card.name}\t${card.cost}:bulb:`)
+            .setDescription(card.description)
+            .setImage(card.imageUrl)
+            .setThumbnail(`attachment://${card.rangeFileName}`);
         await interaction.reply({
             embeds: [embed],
             files: [cardRangeImage],

@@ -38,6 +38,8 @@ const registerCommands = async () => {
         )
         .catch(console.error);
 
+    return;
+
     rest.put(Routes.applicationCommands(clientId), {
         body: commandsJson,
     })

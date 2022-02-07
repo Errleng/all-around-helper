@@ -1,5 +1,7 @@
 import { ColorResolvable } from 'discord.js';
 
+export const ALLOWED_CHANNEL_IDS = ['770488167719501867', '936394221940772864'];
+
 export const ASSETS_PATH = 'assets';
 export const COMMANDS_PATH = './commands';
 export const EVENTS_PATH = './events';

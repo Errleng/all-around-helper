@@ -11,3 +11,13 @@ export interface ClientEvent {
     once: boolean;
     execute: (...interaction: Interaction<CacheType>) => void;
 }
+
+export interface Card {
+    name: string;
+    cost: string;
+    description: string;
+    range: string;
+    rangeFileName: string;
+    imageUrl: string;
+    rarityColor: string;
+}

@@ -1,6 +1,6 @@
 import { ColorResolvable } from 'discord.js';
 
-export const ASSETS_PATH = '../assets';
+export const ASSETS_PATH = 'assets';
 export const COMMANDS_PATH = './commands';
 export const EVENTS_PATH = './events';
 export const DICE_TYPE_EMOJI_MAP: Record<string, string> = {
@@ -26,6 +26,20 @@ export const DICE_TYPE_CUSTOM_EMOJI_MAP: Record<string, string> = {
     StandbySlash: '<:counterslash:939986712833196112>',
     StandbyPierce: '<:counterpierce:940003206241599518>',
     StandbyBlunt: '<:counterslash:940003205910249594>',
+};
+export const CARD_RANGE_CUSTOM_EMOJI_MAP: Record<string, string> = {
+    Melee: '<:rangemelee:940003205922824245>',
+    Ranged: '<:rangeranged:940003206384209960>',
+    'Mass (individual)': '<:rangemass:940003206371618836>',
+    'Mass (summation)': '<:rangemass:940003206371618836>',
+    Immediate: '<:rangeinstant:940003206166093855>',
+};
+export const CARD_RANGE_IMAGE_MAP: Record<string, string> = {
+    Melee: 'range-melee.png',
+    Ranged: 'range-ranged.png',
+    'Mass (individual)': 'range-mass.png',
+    'Mass (summation)': 'range-mass.png',
+    Immediate: 'range-instant.png',
 };
 export const CARD_RARITY_COLOR_MAP: Record<string, string> = {
     Common: '#A8F29F',

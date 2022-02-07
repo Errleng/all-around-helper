@@ -1,9 +1,16 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { ColorResolvable, CommandInteraction, MessageEmbed } from 'discord.js';
+import {
+    ColorResolvable,
+    CommandInteraction,
+    MessageAttachment,
+    MessageEmbed,
+} from 'discord.js';
 import { Command } from 'src/types';
 import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
 import {
+    ASSETS_PATH,
+    CARD_RANGE_IMAGE_MAP,
     CARD_RARITY_COLOR_MAP,
     DICE_GROUP_COLOR_MAP,
     DICE_TYPE_CUSTOM_EMOJI_MAP,
@@ -90,10 +97,17 @@ const command: Command = {
         )?.textContent;
         const cardCost = document.querySelector('.card_cost')?.textContent;
         const cardDice = document.querySelectorAll('.card_back .card_dice');
+        const cardRange = document
+            .querySelector('.card_range .icon')
+            ?.getAttribute('title');
 
         if (!cardText) {
             cardText = '';
         }
+        if (cardText.length > 0) {
+            cardText += '\n';
+        }
+
         cardDice.forEach((dice) => {
             const diceGroup = dice.getAttribute('data-type');
             const diceType = dice.getAttribute('data-detail');
@@ -132,7 +146,7 @@ const command: Command = {
                     DICE_GROUP_COLOR_MAP[diceGroup]
                 )}\n${diceEmoji}[${diceRange}]\t${diceDesc}\n\`\`\``;
             } else {
-                text = `\n${diceEmoji}\t**${diceRange}**\t${diceDesc}`;
+                text = `\n${diceEmoji}\t\t\t**${diceRange}**\t\t\t${diceDesc}`;
             }
             cardText += text;
         });
@@ -155,13 +169,25 @@ const command: Command = {
             cardRarity
         ] as ColorResolvable;
 
+        if (!cardRange) {
+            console.warn(`Unknown card range: ${cardRange}`);
+            await interaction.reply(errorMessage);
+            return;
+        }
+        const cardRangeImageFileName = CARD_RANGE_IMAGE_MAP[cardRange];
+        const cardRangeImage = new MessageAttachment(
+            `${ASSETS_PATH}/images/${cardRangeImageFileName}`
+        );
+
         const embed = new MessageEmbed()
             .setColor(cardRarityColor)
-            .setTitle(`${closestCardName} (${cardCost}:bulb:)`)
+            .setTitle(`\u200b${closestCardName}\t${cardCost}:bulb:`)
             .setDescription(cardText)
-            .setImage(cardImgUrl);
+            .setImage(cardImgUrl)
+            .setThumbnail(`attachment://${cardRangeImageFileName}`);
         await interaction.reply({
             embeds: [embed],
+            files: [cardRangeImage],
         });
     },
 };

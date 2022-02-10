@@ -1,22 +1,123 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction, MessageAttachment } from 'discord.js';
-import { env } from '../constants';
-import { Command } from '../types';
-import { getCanvasLines, getCardData, onCommandInteraction } from '../utils';
 import * as Canvas from 'canvas';
+import { CommandInteraction, MessageAttachment } from 'discord.js';
+import { ASSETS_PATH, DICE_CATEGORY_JS_COLOR_MAP, env } from '../constants';
+import { Card, Command, DiceCategory, DiceType } from '../types';
+import {
+    getCanvasLines,
+    getCardData,
+    getTextHeight,
+    onCommandInteraction,
+} from '../utils';
+
+const drawCardDice: (
+    canvas: Canvas.Canvas,
+    card: Card
+) => Promise<Canvas.Canvas> = async (canvas, card) => {
+    const topTextHeight = 35;
+    // card art is usually 410x310
+    const context = canvas.getContext('2d');
+
+    const fontName = 'Verdana';
+    context.font = `32px ${fontName}`;
+    context.fillStyle = 'black';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.fillStyle = 'white';
+    context.strokeStyle = 'black';
+    context.textAlign = 'center';
+    context.lineWidth = 5;
+    let lineHeight = getTextHeight(context, card.name);
+    const titleHeight = lineHeight;
+
+    context.fillText(card.name, canvas.width / 2, topTextHeight);
+
+    context.font = `14px ${fontName}`;
+    const cardDescLines = getCanvasLines(
+        context,
+        card.description,
+        canvas.width
+    );
+    lineHeight = getTextHeight(context, card.description);
+    let diceY = 0;
+    for (let i = 0; i < cardDescLines.length; i++) {
+        const line = cardDescLines[i];
+        const lineY = titleHeight + 30 + i * lineHeight;
+        context.fillText(line, canvas.width / 2, lineY);
+        diceY = Math.max(diceY, lineY);
+    }
+    if (card.description.length > 0) {
+        diceY += 10;
+    } else {
+        diceY = titleHeight + 20;
+    }
+
+    context.textAlign = 'left';
+    const diceIconWidth = 50;
+    const diceIconHeight = 50;
+    for (let i = 0; i < card.dice.length; i++) {
+        const dice = card.dice[i];
+
+        const diceCategory = DiceCategory[dice.category];
+        const diceType = DiceType[dice.type];
+        const diceImagePath = `${ASSETS_PATH}/images/${diceCategory}-${diceType}.png`;
+        const diceArt = await Canvas.loadImage(diceImagePath);
+        context.drawImage(diceArt, 10, diceY + diceIconHeight * i, 50, 50);
+
+        context.font = `20px ${fontName}`;
+        context.fillStyle = DICE_CATEGORY_JS_COLOR_MAP[dice.category];
+        lineHeight = getTextHeight(context, dice.roll);
+        context.fillText(
+            dice.roll,
+            diceIconWidth + 20,
+            diceY + diceIconHeight * (i + 0.5) + lineHeight / 2
+        );
+
+        const rollWidth = context.measureText(dice.roll).width;
+        const descX = diceIconWidth + rollWidth + 30;
+        const descLines = getCanvasLines(
+            context,
+            dice.desc,
+            canvas.width - descX
+        );
+        context.font = `14px ${fontName}`;
+        context.fillStyle = 'white';
+        lineHeight = getTextHeight(context, dice.desc);
+        for (let j = 0; j < descLines.length; j++) {
+            const desc = descLines[j];
+            context.fillText(
+                desc,
+                descX,
+                diceY + diceIconHeight * i + (j + 1) * lineHeight
+            );
+        }
+    }
+    const maxHeight = diceY + diceIconHeight * card.dice.length + 10;
+    if (Math.abs(maxHeight - canvas.height) > 10) {
+        const resizedCanvas = Canvas.createCanvas(canvas.width, maxHeight);
+        console.log(
+            'Resizing canvas to',
+            resizedCanvas.width,
+            resizedCanvas.height
+        );
+        return drawCardDice(resizedCanvas, card);
+    } else {
+        return canvas;
+    }
+};
 
 const command: Command = {
     permissions: [
-        {
-            id: env.DEV_USER,
-            type: 'USER',
-            permission: true,
-        },
+        // {
+        //     id: env.DEV_USER,
+        //     type: 'USER',
+        //     permission: true,
+        // },
     ],
     data: new SlashCommandBuilder()
         .setName('ruina-card-image')
         .setDescription('Generates an image of a Library of Ruina card')
-        .setDefaultPermission(false)
+        .setDefaultPermission(true)
         .addStringOption((option) =>
             option
                 .setName('cardname')
@@ -71,68 +172,20 @@ const command: Command = {
             return;
         }
 
-        const topTextHeight = 30;
-        const bottomTextHeight = 290;
-        let lineHeight = 32;
-        // card art is usually 410x310
-        const canvas = Canvas.createCanvas(610, 410);
-        const context = canvas.getContext('2d');
-        const cardImage = await Canvas.loadImage(card.imageUrl);
+        await interaction.deferReply();
 
-        context.font = '32px sans-serif';
-        context.fillStyle = 'black';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        context.fillStyle = 'white';
-        context.strokeStyle = 'black';
-        context.textAlign = 'center';
-        context.lineWidth = 5;
-
-        context.drawImage(cardImage, 0, 50, 410, 310);
-        context.strokeText(card.name, canvas.width / 2, topTextHeight);
-        context.fillText(card.name, canvas.width / 2, topTextHeight);
-
-        context.font = '12px sans-serif';
-        const cardDescLines = getCanvasLines(
-            context,
-            card.description,
-            canvas.width
-        );
-        for (let i = 0; i < cardDescLines.length; i++) {
-            const line = cardDescLines[i];
-            const lineY =
-                bottomTextHeight -
-                (cardDescLines.length - 1) * lineHeight +
-                i * lineHeight;
-            context.strokeText(line, canvas.width / 2, lineY);
-            context.fillText(line, canvas.width / 2, lineY);
-        }
-
-        context.textAlign = 'left';
-        lineHeight = 12;
-        // for (const dice of card.dice) {
-        //     const lineX = 430;
-        // const lineY = 50;
-        // const descLines = getCanvasLines(
-        //     context,
-        //     dice.desc,
-        //     canvas.width - lineX
-        // );
-        // for (let i = 0; i < descLines.length; i++) {
-        //     const line = descLines[i];
-        //     context.fillText(line, lineX, lineY + i * lineHeight);
-        // }
-        // }
-
-        const attachment = new MessageAttachment(
-            canvas.toBuffer(),
-            'card-image.png'
+        const cardArt = new MessageAttachment(card.imageUrl, 'card-art.png');
+        // resize card dice image
+        const canvas = Canvas.createCanvas(410, 310);
+        const finalCanvas = await drawCardDice(canvas, card);
+        const cardDice = new MessageAttachment(
+            finalCanvas.toBuffer(),
+            'card-dice.png'
         );
 
-        console.log('image attachment', attachment);
-
-        await interaction.reply({
-            files: [attachment],
+        interaction.ephemeral = false;
+        await interaction.editReply({
+            files: [cardArt, cardDice],
         });
     },
 };

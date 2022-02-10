@@ -141,7 +141,7 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         const diceType = diceElem.getAttribute('data-detail');
         const diceRoll = diceElem
             .querySelector('.card_dice_range')
-            ?.textContent?.replace(' - ', '~');
+            ?.textContent?.replace(' - ', '-');
         let diceDesc = diceElem.querySelector(
             '.card_dice_desc span[data-lang="en"]:not(:empty)'
         )?.textContent;
@@ -249,11 +249,22 @@ export const onCommandInteraction = (interaction: CommandInteraction) => {
     ++useCount;
 };
 
+export const getTextHeight = (
+    context: CanvasRenderingContext2D,
+    text: string
+) => {
+    const metrics = context.measureText(text);
+    return metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+};
+
 export const getCanvasLines = (
     ctx: CanvasRenderingContext2D,
     text: string,
     maxWidth: number
 ) => {
+    if (!text) {
+        return [];
+    }
     const words = text.split(' ');
     const lines = [];
     let currentLine = words[0];

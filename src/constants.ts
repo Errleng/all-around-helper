@@ -1,6 +1,7 @@
 import { ColorResolvable } from 'discord.js';
 import * as dotenv from 'dotenv';
 import dotenvParseVariables from 'dotenv-parse-variables';
+import { DiceCategory } from './types';
 
 const rawEnv = dotenv.config();
 if (rawEnv.error || rawEnv.parsed === undefined) {
@@ -58,8 +59,13 @@ export const CARD_RARITY_COLOR_MAP: Record<string, string> = {
     Rare: '#BA97FF',
     Unique: '#FFC075',
 };
-export const DICE_GROUP_COLOR_MAP: Record<string, ColorResolvable> = {
+export const DICE_CATEGORY_COLOR_MAP: Record<string, ColorResolvable> = {
     Defensive: 'BLUE',
     Offensive: 'ORANGE',
     Counter: 'YELLOW',
+};
+export const DICE_CATEGORY_JS_COLOR_MAP: Record<DiceCategory, string> = {
+    [DiceCategory.Defensive]: '#11b6f7',
+    [DiceCategory.Offensive]: '#f5481c',
+    [DiceCategory.Counter]: '#f9ba12',
 };

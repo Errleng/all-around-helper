@@ -9,7 +9,7 @@ import { Command, DiceCategory, DiceType } from '../types';
 import { getCardData, getSyntaxForColor, onCommandInteraction } from '../utils';
 import {
     ASSETS_PATH,
-    DICE_GROUP_COLOR_MAP,
+    DICE_CATEGORY_COLOR_MAP,
     DICE_TYPE_CUSTOM_EMOJI_MAP,
     DICE_TYPE_EMOJI_MAP,
     env,
@@ -102,7 +102,7 @@ const command: Command = {
             }
             if (env.USE_COLORED_TEXT) {
                 text += `\`\`\`${getSyntaxForColor(
-                    DICE_GROUP_COLOR_MAP[diceCategory]
+                    DICE_CATEGORY_COLOR_MAP[diceCategory]
                 )}\n${diceEmoji}[${dice.roll}]\t${dice.desc}\n\`\`\``;
             } else {
                 text += `\n${diceEmoji}\t\t\t**${dice.roll}**\t\t\t${dice.desc}`;

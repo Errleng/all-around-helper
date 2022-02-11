@@ -246,9 +246,9 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
             card.rarityColor,
         ]
     );
-    for (const dice of card.dice) {
+    for (const [i, dice] of card.dice.entries()) {
         await dbClient.query(
-            'INSERT INTO dice VALUES($1, $2, $3, $4, $5, $6)',
+            'INSERT INTO dice VALUES($1, $2, $3, $4, $5, $6, $7)',
             [
                 card.id,
                 DiceCategory[dice.category],
@@ -256,6 +256,7 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
                 dice.minRoll,
                 dice.maxRoll,
                 dice.description,
+                i,
             ]
         );
     }
@@ -333,11 +334,50 @@ export const getCanvasLines = (
     return lines;
 };
 
+export const getCardFromDatabase = async (cardName: string) => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    const cards = await dbClient.query('SELECT * FROM cards WHERE name = $1', [
+        cardName,
+    ]);
+    const matches: Card[] = [];
+
+    for (const cardRow of cards.rows) {
+        console.log('card row:', cardRow);
+        const card: Card = {
+            id: cardRow.id,
+            name: cardRow.name,
+            cost: cardRow.cost,
+            description: cardRow.description,
+            range: cardRow.range,
+            imageUrl: cardRow.image_url,
+            rarityColor: cardRow.rarity_color,
+            dice: [],
+        };
+        const dice = await dbClient.query(
+            'SELECT * FROM dice WHERE card_id = $1 ORDER BY index',
+            [card.id]
+        );
+        for (const diceRow of dice.rows) {
+            console.log('dice row:', diceRow);
+            const die: Dice = {
+                category: diceRow.category,
+                type: diceRow.type,
+                minRoll: diceRow.min_roll,
+                maxRoll: diceRow.max_roll,
+                description: diceRow.description,
+            };
+            card.dice.push(die);
+        }
+        console.log('final card:', card);
+        matches.push(card);
+    }
+    await dbClient.end();
+    return matches;
+};
+
 export const resetDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
-    dbClient.on('error', (err) => {
-        console.error('Database error:', err);
-    });
 
     // delete everything
     await dbClient.connect();
@@ -368,10 +408,12 @@ export const resetDatabase = async () => {
         type            dice_type,
         min_roll        int,
         max_roll        int,
-        description     text
+        description     text,
+        index           int
     )`);
     await dbClient.end();
 
     // for testing
-    // await getCardData('test');
+    // await getCardData('Repressed Flesh');
+    // await getCardFromDatabase('Repressed Flesh');
 };

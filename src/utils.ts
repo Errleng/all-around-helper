@@ -6,22 +6,89 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
-import { Card, Dice, DiceCategory, DiceType } from './types';
+import {
+    Card,
+    CardRange,
+    CardRarity,
+    Dice,
+    DiceCategory,
+    DiceType,
+} from './types';
 import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
 import {
     ALLOWED_CHANNEL_IDS,
-    CARD_RARITY_COLOR_MAP,
     env,
     POSTGRES_CONNECTION,
+    TIPHERETH_CARD_RANGE_RAW_DATA_MAP,
 } from './constants';
 import { Client } from 'pg';
+import { XMLParser } from 'fast-xml-parser';
+import { inspect } from 'util';
+
+let useCount = 0;
+setInterval(() => {
+    if (useCount > 0) {
+        console.log(`ruina-card-meme reset useCount from ${useCount} to zero`);
+    }
+    useCount = 0;
+}, 1000 * 60);
+export const onCommandInteraction = (interaction: CommandInteraction) => {
+    console.log(
+        `Command ${interaction.commandName} used in channel ${
+            interaction.guild?.channels.cache.get(interaction.channelId)?.name
+        } (${interaction.channelId})`
+    );
+    if (
+        interaction.guild &&
+        !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
+    ) {
+        const channelNames = getGuildChannelsFromIds(
+            interaction.guild,
+            ALLOWED_CHANNEL_IDS
+        ).map((channel) => `#${channel.name}`);
+        throw new Error(
+            `This bot is restricted to the channels \`${channelNames.join(
+                ', '
+            )}\``
+        );
+    }
+
+    if (useCount >= env.REQUEST_LIMIT) {
+        throw new Error(
+            `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`
+        );
+    }
+    ++useCount;
+};
 
 export const getFileNamesNoExt: (dirPath: string) => string[] = (dirPath) => {
     return fs
         .readdirSync(dirPath)
         .filter((fileName) => fileName.endsWith('.ts'))
         .map((fileName) => path.parse(fileName).name);
+};
+
+export const findFileRecur: (
+    targetFileName: string,
+    dir: string
+) => string | null = (targetFileName, dir) => {
+    const files = fs.readdirSync(dir);
+    for (const fileName of files) {
+        const fullPath = path.join(dir, fileName);
+        if (fs.lstatSync(fullPath).isDirectory()) {
+            const result = findFileRecur(targetFileName, fullPath);
+            if (result !== null) {
+                return result;
+            }
+        } else {
+            const fileNameNoExt = path.parse(fileName).name;
+            if (fileNameNoExt === targetFileName) {
+                return fullPath;
+            }
+        }
+    }
+    return null;
 };
 
 export const importDefaults: <Type>(
@@ -93,7 +160,7 @@ export const getCardDetailHtml: (cardName: string) => Promise<string> = async (
     return responseBody;
 };
 
-export const getCardData: (cardName: string) => Promise<Card> = async (
+export const getCardDataTiphereth: (cardName: string) => Promise<Card> = async (
     cardName
 ) => {
     const cardPageHtml = await getCardDetailHtml(cardName);
@@ -170,19 +237,6 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
             diceDesc = '';
         }
 
-        const diceCategoryMap: Record<string, DiceCategory> = {
-            Atk: DiceCategory.Offensive,
-            Def: DiceCategory.Defensive,
-            Standby: DiceCategory.Counter,
-        };
-        const diceTypeMap: Record<string, DiceType> = {
-            Slash: DiceType.Slash,
-            Pierce: DiceType.Pierce,
-            Blunt: DiceType.Blunt,
-            Guard: DiceType.Guard,
-            Evade: DiceType.Evade,
-        };
-
         const diceRolls = diceRoll.split(' - ');
         const minRoll = parseInt(diceRolls[0]);
         const maxRoll = parseInt(diceRolls[1]);
@@ -193,8 +247,8 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         }
 
         const dice: Dice = {
-            category: diceCategoryMap[diceCategory],
-            type: diceTypeMap[diceType],
+            category: DiceCategory[diceCategory as keyof typeof DiceCategory],
+            type: DiceType[diceType as keyof typeof DiceType],
             minRoll,
             maxRoll,
             description: diceDesc,
@@ -215,89 +269,161 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
     if (!cardRarity) {
         throw new Error(`Unknown card rarity: ${cardRarity}`);
     }
-    const cardRarityColor = CARD_RARITY_COLOR_MAP[cardRarity];
 
     const card: Card = {
         id: Number(cardId),
         name: closestCardName,
-        cost: Number(cardCost),
         description: cardDesc,
-        range: cardRange,
-        imageUrl: cardImgUrl,
-        rarityColor: cardRarityColor,
+        cost: Number(cardCost),
+        rarity: CardRarity[cardRarity as keyof typeof CardRarity],
+        range: TIPHERETH_CARD_RANGE_RAW_DATA_MAP[cardRange],
+        image: cardImgUrl,
         dice: cardDice,
     };
 
     if (isNaN(card.id) || isNaN(card.cost)) {
         throw new Error('Could not convert strings to numbers');
     }
-
-    const dbClient = new Client(POSTGRES_CONNECTION);
-    await dbClient.connect();
-    await dbClient.query(
-        'INSERT INTO cards VALUES($1, $2, $3, $4, $5, $6, $7)',
-        [
-            card.id,
-            card.name,
-            card.cost,
-            card.description,
-            card.range,
-            card.imageUrl,
-            card.rarityColor,
-        ]
-    );
-    for (const [i, dice] of card.dice.entries()) {
-        await dbClient.query(
-            'INSERT INTO dice VALUES($1, $2, $3, $4, $5, $6, $7)',
-            [
-                card.id,
-                DiceCategory[dice.category],
-                DiceType[dice.type],
-                dice.minRoll,
-                dice.maxRoll,
-                dice.description,
-                i,
-            ]
-        );
-    }
-    await dbClient.end();
     return card;
 };
 
-let useCount = 0;
-setInterval(() => {
-    if (useCount > 0) {
-        console.log(`ruina-card-meme reset useCount from ${useCount} to zero`);
-    }
-    useCount = 0;
-}, 1000 * 60);
-export const onCommandInteraction = (interaction: CommandInteraction) => {
-    console.log(
-        `Command ${interaction.commandName} used in channel ${
-            interaction.guild?.channels.cache.get(interaction.channelId)?.name
-        } (${interaction.channelId})`
-    );
-    if (
-        interaction.guild &&
-        !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
-    ) {
-        const channelNames = getGuildChannelsFromIds(
-            interaction.guild,
-            ALLOWED_CHANNEL_IDS
-        ).map((channel) => `#${channel.name}`);
-        throw new Error(
-            `This bot is restricted to the channels \`${channelNames.join(
-                ', '
-            )}\``
-        );
-    }
+export const getCardFromDatabase = async (cardName: string) => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    const cards = await dbClient.query('SELECT * FROM cards WHERE name = $1', [
+        cardName,
+    ]);
+    const matches: Card[] = [];
 
-    if (useCount >= env.REQUEST_LIMIT) {
-        throw new Error(
-            `Exceeded rate limit of ${env.REQUEST_LIMIT} requests per minute.`
+    for (const cardRow of cards.rows) {
+        console.log('card row:', cardRow);
+        const card: Card = {
+            id: cardRow.id,
+            name: cardRow.name,
+            description: cardRow.description,
+            cost: cardRow.cost,
+            rarity: cardRow.rarity,
+            range: cardRow.range,
+            image: cardRow.image,
+            dice: [],
+        };
+        const dice = await dbClient.query(
+            'SELECT * FROM dice WHERE card_id = $1 ORDER BY index',
+            [card.id]
         );
+        for (const diceRow of dice.rows) {
+            console.log('dice row:', diceRow);
+            const die: Dice = {
+                category: diceRow.category,
+                type: diceRow.type,
+                minRoll: diceRow.min_roll,
+                maxRoll: diceRow.max_roll,
+                description: diceRow.description,
+            };
+            card.dice.push(die);
+        }
+        console.log('final card:', card);
+        matches.push(card);
     }
-    ++useCount;
+    await dbClient.end();
+    return matches;
+};
+
+export const getCardsFromXml = (xml: string) => {
+    const ALWAYS_ARRAY_TAGS = ['Behaviour'];
+    const xmlParser = new XMLParser({
+        ignoreAttributes: false,
+        // attributeNamePrefix: '',
+        // attributesGroupName: '@',
+        isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
+    });
+
+    const getCardName = (cardId: string) => {
+        const cardNamesXml = fs.readFileSync(
+            `${env.EXTRACTED_ASSETS_DIR}/Text/EN/EN_BattleCards.txt`,
+            'utf-8'
+        );
+        const cardNamesJs = xmlParser.parse(cardNamesXml);
+        console.log('card names parsed:', cardNamesJs);
+        const cardDescs: any[] =
+            cardNamesJs['BattleCardDescRoot']['cardDescList']['BattleCardDesc'];
+        const cardDesc = cardDescs.find((desc) => desc['@_ID'] === cardId);
+        if (cardDesc === undefined) {
+            throw new Error(`Could not find card name with id: ${cardDesc}`);
+        }
+        return cardDesc['LocalizedName'];
+    };
+
+    const getAbilityText = (abilityId: string) => {
+        const abilitiesXml = fs.readFileSync(
+            `${env.EXTRACTED_ASSETS_DIR}/Text/EN/EN_BattleCardAbilities.txt`,
+            'utf-8'
+        );
+        const abilitiesJs = xmlParser.parse(abilitiesXml);
+        console.log('card abilities parsed:', abilitiesJs);
+        const abilities: any[] =
+            abilitiesJs['BattleCardAbilityDescRoot']['BattleCardAbility'];
+        const ability = abilities.find((desc) => desc['@_ID'] === abilityId);
+        if (ability === undefined) {
+            throw new Error(`Could not find ability with id: ${abilityId}`);
+        }
+        return ability['Desc'];
+    };
+
+    const getImagePath = (artworkId: string) => {
+        const imageDir = `${env.EXTRACTED_ASSETS_DIR}/RawImages`;
+        const imagePath = findFileRecur(artworkId, imageDir);
+        if (imagePath === null) {
+            throw new Error(`Could not find image of card: ${artworkId}`);
+        }
+        console.log(`Found image path for ${artworkId}: ${imagePath}`);
+        return imagePath;
+    };
+
+    console.log('xml', xml);
+    const jsObj = xmlParser.parse(xml);
+    console.log(inspect(jsObj, false, null));
+
+    const jsCards = jsObj['DiceCardXmlRoot']['Card'];
+    const cards: Card[] = [];
+    for (const jsCard of jsCards) {
+        const diceBehaviours = jsCard['BehaviourList']['Behaviour'];
+        console.log('dice behaviour', diceBehaviours);
+        const dice: Dice[] = [];
+        for (const behaviour of diceBehaviours) {
+            const category =
+                DiceCategory[behaviour['@_Type'] as keyof typeof DiceCategory];
+            const type =
+                DiceType[behaviour['@_Detail'] as keyof typeof DiceType];
+            const die: Dice = {
+                category,
+                type,
+                minRoll: behaviour['@_Min'],
+                maxRoll: behaviour['@_Dice'],
+                description: behaviour['@_Desc'],
+            };
+            dice.push(die);
+        }
+
+        const spec = jsCard['Spec'];
+
+        const cardId = jsCard['@_ID'];
+        const cardScript = jsCard['Script'];
+        const cardName = getCardName(cardId);
+
+        const card: Card = {
+            id: Number(cardId),
+            name: cardName,
+            description: cardScript ? getAbilityText(cardScript) : '',
+            cost: Number(spec['@_Cost']),
+            range: CardRange[spec['@_Range'] as keyof typeof CardRange],
+            rarity: CardRarity[jsCard['Rarity'] as keyof typeof CardRarity],
+            image: getImagePath(jsCard['Artwork']),
+            dice,
+        };
+        cards.push(card);
+    }
+    return cards;
 };
 
 export const getTextHeight = (
@@ -332,88 +458,4 @@ export const getCanvasLines = (
     }
     lines.push(currentLine);
     return lines;
-};
-
-export const getCardFromDatabase = async (cardName: string) => {
-    const dbClient = new Client(POSTGRES_CONNECTION);
-    await dbClient.connect();
-    const cards = await dbClient.query('SELECT * FROM cards WHERE name = $1', [
-        cardName,
-    ]);
-    const matches: Card[] = [];
-
-    for (const cardRow of cards.rows) {
-        console.log('card row:', cardRow);
-        const card: Card = {
-            id: cardRow.id,
-            name: cardRow.name,
-            cost: cardRow.cost,
-            description: cardRow.description,
-            range: cardRow.range,
-            imageUrl: cardRow.image_url,
-            rarityColor: cardRow.rarity_color,
-            dice: [],
-        };
-        const dice = await dbClient.query(
-            'SELECT * FROM dice WHERE card_id = $1 ORDER BY index',
-            [card.id]
-        );
-        for (const diceRow of dice.rows) {
-            console.log('dice row:', diceRow);
-            const die: Dice = {
-                category: diceRow.category,
-                type: diceRow.type,
-                minRoll: diceRow.min_roll,
-                maxRoll: diceRow.max_roll,
-                description: diceRow.description,
-            };
-            card.dice.push(die);
-        }
-        console.log('final card:', card);
-        matches.push(card);
-    }
-    await dbClient.end();
-    return matches;
-};
-
-export const resetDatabase = async () => {
-    const dbClient = new Client(POSTGRES_CONNECTION);
-
-    // delete everything
-    await dbClient.connect();
-    await dbClient.query('DROP TABLE IF EXISTS dice');
-    await dbClient.query('DROP TABLE IF EXISTS cards');
-    await dbClient.query('DROP TYPE IF EXISTS dice_category');
-    await dbClient.query('DROP TYPE IF EXISTS dice_type');
-
-    // create everything
-    await dbClient.query(
-        "CREATE TYPE dice_type AS ENUM ('Slash', 'Pierce', 'Blunt', 'Guard', 'Evade')"
-    );
-    await dbClient.query(
-        "CREATE TYPE dice_category AS ENUM ('Offensive', 'Defensive', 'Counter')"
-    );
-    await dbClient.query(`CREATE TABLE cards (
-        id              int primary key,
-        name            text,
-        cost            int,
-        description     text,
-        range           text,
-        image_url       text,
-        rarity_color    text
-    )`);
-    await dbClient.query(`CREATE TABLE dice (
-        card_id         int references cards(id),
-        category        dice_category,
-        type            dice_type,
-        min_roll        int,
-        max_roll        int,
-        description     text,
-        index           int
-    )`);
-    await dbClient.end();
-
-    // for testing
-    // await getCardData('Repressed Flesh');
-    // await getCardFromDatabase('Repressed Flesh');
 };

@@ -1,7 +1,8 @@
 import { Client, Collection, Intents } from 'discord.js';
 import { COMMANDS_PATH, env, EVENTS_PATH } from './constants';
+import { resetDatabase } from './database';
 import { ClientEvent, Command } from './types';
-import { importDefaults, resetDatabase } from './utils';
+import { importDefaults } from './utils';
 
 const token = env.BOT_TOKEN;
 
@@ -28,9 +29,9 @@ const setupEvents = async () => {
     }
 };
 
-resetDatabase();
-
 setupCommands();
 setupEvents();
 // Login to Discord with your client's token
-client.login(token);
+// client.login(token);
+
+resetDatabase().then(() => process.kill(process.pid, 'SIGTERM'));

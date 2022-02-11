@@ -21,11 +21,11 @@ export interface ClientEvent {
 export interface Card {
     id: number;
     name: string;
-    cost: number;
     description: string;
-    range: string;
-    imageUrl: string;
-    rarityColor: string;
+    cost: number;
+    rarity: CardRarity;
+    range: CardRange;
+    image: string;
     dice: Dice[];
 }
 
@@ -38,14 +38,30 @@ export interface Dice {
 }
 
 export enum DiceCategory {
-    Offensive,
-    Defensive,
-    Counter,
+    Atk,
+    Def,
+    Standby,
 }
+
 export enum DiceType {
     Slash,
-    Pierce,
-    Blunt,
+    Penetrate,
+    Hit,
     Guard,
-    Evade,
+    Evasion,
+}
+
+export enum CardRange {
+    Near,
+    Far,
+    FarArea,
+    FarAreaEach,
+    Instance,
+}
+
+export enum CardRarity {
+    Common,
+    Uncommon,
+    Rare,
+    Unique,
 }

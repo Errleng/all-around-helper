@@ -17,6 +17,7 @@ declare global {
             PGPASSWORD: string;
             PGHOST: string;
             PGPORT: number;
+            EXTRACTED_ASSETS_DIR: string;
         }
     }
 }

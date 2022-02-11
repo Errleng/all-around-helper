@@ -1,7 +1,11 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction, MessageAttachment } from 'discord.js';
 import { Command } from '../types';
-import { getCardData, getCanvasLines, onCommandInteraction } from '../utils';
+import {
+    getCardDataTiphereth,
+    getCanvasLines,
+    onCommandInteraction,
+} from '../utils';
 import * as Canvas from 'canvas';
 
 const command: Command = {
@@ -61,7 +65,7 @@ const command: Command = {
 
         let card = null;
         try {
-            card = await getCardData(cardName);
+            card = await getCardDataTiphereth(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -84,7 +88,7 @@ const command: Command = {
         // card art is usually 410x310
         const canvas = Canvas.createCanvas(410, 310);
         const context = canvas.getContext('2d');
-        const cardImage = await Canvas.loadImage(card.imageUrl);
+        const cardImage = await Canvas.loadImage(card.image);
         context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
 
         const topText = interaction.options.getString('toptext') ?? '';

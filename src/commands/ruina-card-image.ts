@@ -1,11 +1,11 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import * as Canvas from 'canvas';
 import { CommandInteraction, MessageAttachment } from 'discord.js';
-import { ASSETS_PATH, DICE_CATEGORY_JS_COLOR_MAP } from '../constants';
+import { ASSETS_PATH, DICE_CATEGORY_COLOR_MAP } from '../constants';
 import { Card, Command, DiceCategory, DiceType } from '../types';
 import {
     getCanvasLines,
-    getCardData,
+    getCardDataTiphereth,
     getTextHeight,
     onCommandInteraction,
 } from '../utils';
@@ -65,7 +65,7 @@ const drawCardDice: (
         context.drawImage(diceArt, 10, diceY + diceIconHeight * i, 50, 50);
 
         context.font = `20px ${fontName}`;
-        context.fillStyle = DICE_CATEGORY_JS_COLOR_MAP[dice.category];
+        context.fillStyle = DICE_CATEGORY_COLOR_MAP[dice.category];
         const diceRoll = `${dice.minRoll}-${dice.maxRoll}`;
         lineHeight = getTextHeight(context, diceRoll);
         context.fillText(
@@ -156,7 +156,7 @@ const command: Command = {
 
         let card = null;
         try {
-            card = await getCardData(cardName);
+            card = await getCardDataTiphereth(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -175,7 +175,7 @@ const command: Command = {
 
         await interaction.deferReply();
 
-        const cardArt = new MessageAttachment(card.imageUrl, 'card-art.png');
+        const cardArt = new MessageAttachment(card.image, 'card-art.png');
         // resize card dice image
         const canvas = Canvas.createCanvas(410, 310);
         const finalCanvas = await drawCardDice(canvas, card);

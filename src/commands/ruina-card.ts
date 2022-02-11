@@ -6,14 +6,19 @@ import {
     MessageEmbed,
 } from 'discord.js';
 import { Command, DiceCategory, DiceType } from '../types';
-import { getCardData, getSyntaxForColor, onCommandInteraction } from '../utils';
+import {
+    getCardDataTiphereth,
+    getSyntaxForColor,
+    onCommandInteraction,
+} from '../utils';
 import {
     ASSETS_PATH,
-    CARD_RANGE_IMAGE_MAP,
+    TIPHERETH_CARD_RANGE_IMAGE_MAP,
     DICE_CATEGORY_COLOR_MAP,
     DICE_TYPE_CUSTOM_EMOJI_MAP,
     DICE_TYPE_EMOJI_MAP,
     env,
+    CARD_RARITY_COLOR_MAP,
 } from '../constants';
 
 let useCount = 0;
@@ -68,7 +73,7 @@ const command: Command = {
 
         let card = null;
         try {
-            card = await getCardData(cardName);
+            card = await getCardDataTiphereth(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -86,7 +91,9 @@ const command: Command = {
         }
 
         const cardRangeImage = new MessageAttachment(
-            `${ASSETS_PATH}/images/${CARD_RANGE_IMAGE_MAP[card.range]}`
+            `${ASSETS_PATH}/images/${
+                TIPHERETH_CARD_RANGE_IMAGE_MAP[card.range]
+            }`
         );
         let text = card.description;
         if (text.length > 0) {
@@ -104,7 +111,7 @@ const command: Command = {
             const diceRoll = `${dice.minRoll}-${dice.maxRoll}`;
             if (env.USE_COLORED_TEXT) {
                 text += `\`\`\`${getSyntaxForColor(
-                    DICE_CATEGORY_COLOR_MAP[diceCategory]
+                    DICE_CATEGORY_COLOR_MAP[dice.category] as ColorResolvable
                 )}\n${diceEmoji}[${diceRoll}]\t${dice.description}\n\`\`\``;
             } else {
                 text += `\n${diceEmoji}\t\t\t**${diceRoll}**\t\t\t${dice.description}`;
@@ -112,11 +119,13 @@ const command: Command = {
         });
 
         const embed = new MessageEmbed()
-            .setColor(card.rarityColor as ColorResolvable)
+            .setColor(CARD_RARITY_COLOR_MAP[card.rarity] as ColorResolvable)
             .setTitle(`${card.name}\t${card.cost}:bulb:`)
             .setDescription(text)
-            .setImage(card.imageUrl)
-            .setThumbnail(`attachment://${CARD_RANGE_IMAGE_MAP[card.range]}`);
+            .setImage(card.image)
+            .setThumbnail(
+                `attachment://${TIPHERETH_CARD_RANGE_IMAGE_MAP[card.range]}`
+            );
         await interaction.reply({
             embeds: [embed],
             files: [cardRangeImage],

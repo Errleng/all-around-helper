@@ -19,11 +19,11 @@ export interface ClientEvent {
 }
 
 export interface Card {
+    id: number;
     name: string;
     cost: number;
     description: string;
     range: string;
-    rangeFileName: string;
     imageUrl: string;
     rarityColor: string;
     dice: Dice[];
@@ -34,7 +34,7 @@ export interface Dice {
     type: DiceType;
     minRoll: number;
     maxRoll: number;
-    desc: string;
+    description: string;
 }
 
 export enum DiceCategory {

@@ -78,12 +78,12 @@ const drawCardDice: (
         const descX = diceIconWidth + rollWidth + 30;
         const descLines = getCanvasLines(
             context,
-            dice.desc,
+            dice.description,
             canvas.width - descX
         );
         context.font = `14px ${fontName}`;
         context.fillStyle = 'white';
-        lineHeight = getTextHeight(context, dice.desc);
+        lineHeight = getTextHeight(context, dice.description);
         for (let j = 0; j < descLines.length; j++) {
             const desc = descLines[j];
             context.fillText(

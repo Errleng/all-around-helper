@@ -9,6 +9,7 @@ import { Command, DiceCategory, DiceType } from '../types';
 import { getCardData, getSyntaxForColor, onCommandInteraction } from '../utils';
 import {
     ASSETS_PATH,
+    CARD_RANGE_IMAGE_MAP,
     DICE_CATEGORY_COLOR_MAP,
     DICE_TYPE_CUSTOM_EMOJI_MAP,
     DICE_TYPE_EMOJI_MAP,
@@ -85,7 +86,7 @@ const command: Command = {
         }
 
         const cardRangeImage = new MessageAttachment(
-            `${ASSETS_PATH}/images/${card.rangeFileName}`
+            `${ASSETS_PATH}/images/${CARD_RANGE_IMAGE_MAP[card.range]}`
         );
         let text = card.description;
         if (text.length > 0) {
@@ -104,9 +105,9 @@ const command: Command = {
             if (env.USE_COLORED_TEXT) {
                 text += `\`\`\`${getSyntaxForColor(
                     DICE_CATEGORY_COLOR_MAP[diceCategory]
-                )}\n${diceEmoji}[${diceRoll}]\t${dice.desc}\n\`\`\``;
+                )}\n${diceEmoji}[${diceRoll}]\t${dice.description}\n\`\`\``;
             } else {
-                text += `\n${diceEmoji}\t\t\t**${diceRoll}**\t\t\t${dice.desc}`;
+                text += `\n${diceEmoji}\t\t\t**${diceRoll}**\t\t\t${dice.description}`;
             }
         });
 
@@ -115,7 +116,7 @@ const command: Command = {
             .setTitle(`${card.name}\t${card.cost}:bulb:`)
             .setDescription(text)
             .setImage(card.imageUrl)
-            .setThumbnail(`attachment://${card.rangeFileName}`);
+            .setThumbnail(`attachment://${CARD_RANGE_IMAGE_MAP[card.range]}`);
         await interaction.reply({
             embeds: [embed],
             files: [cardRangeImage],

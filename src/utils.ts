@@ -11,7 +11,6 @@ import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
 import {
     ALLOWED_CHANNEL_IDS,
-    CARD_RANGE_IMAGE_MAP,
     CARD_RARITY_COLOR_MAP,
     env,
     POSTGRES_CONNECTION,
@@ -111,6 +110,14 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         throw new Error(`Invalid closest card name: ${closestCardName}`);
     }
 
+    const cardId = document
+        .querySelector('.card_title')
+        ?.querySelector('a')
+        ?.href.match(/\d+/)?.[0];
+    if (!cardId) {
+        throw new Error(`Could not get id for card ${closestCardName}`);
+    }
+
     let cardImgUrl = document
         .querySelector('[data-label="Artwork"]')
         ?.querySelector('img')?.src;
@@ -131,13 +138,9 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         );
     }
 
-    const cardCostText = document.querySelector('.card_cost')?.textContent;
-    if (!cardCostText) {
+    const cardCost = document.querySelector('.card_cost')?.textContent;
+    if (!cardCost) {
         throw new Error(`Card ${closestCardName} cost is invalid!`);
-    }
-    const cardCost = parseInt(cardCostText, 10);
-    if (isNaN(cardCost)) {
-        throw new Error(`Cannot parse ${cardCostText} as a number`);
     }
 
     const cardDice: Dice[] = [];
@@ -194,7 +197,7 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
             type: diceTypeMap[diceType],
             minRoll,
             maxRoll,
-            desc: diceDesc,
+            description: diceDesc,
         };
         cardDice.push(dice);
     });
@@ -205,7 +208,6 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
     if (!cardRange) {
         throw new Error(`Unknown card range: ${cardRange}`);
     }
-    const cardRangeImageFileName = CARD_RANGE_IMAGE_MAP[cardRange];
 
     const cardRarity = document
         .querySelector('.ent_info_table')
@@ -216,17 +218,47 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
     const cardRarityColor = CARD_RARITY_COLOR_MAP[cardRarity];
 
     const card: Card = {
+        id: Number(cardId),
         name: closestCardName,
-        cost: cardCost,
+        cost: Number(cardCost),
         description: cardDesc,
         range: cardRange,
-        rangeFileName: cardRangeImageFileName,
         imageUrl: cardImgUrl,
         rarityColor: cardRarityColor,
         dice: cardDice,
     };
+
+    if (isNaN(card.id) || isNaN(card.cost)) {
+        throw new Error('Could not convert strings to numbers');
+    }
+
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
+    await dbClient.query(
+        'INSERT INTO cards VALUES($1, $2, $3, $4, $5, $6, $7)',
+        [
+            card.id,
+            card.name,
+            card.cost,
+            card.description,
+            card.range,
+            card.imageUrl,
+            card.rarityColor,
+        ]
+    );
+    for (const dice of card.dice) {
+        await dbClient.query(
+            'INSERT INTO dice VALUES($1, $2, $3, $4, $5, $6)',
+            [
+                card.id,
+                DiceCategory[dice.category],
+                DiceType[dice.type],
+                dice.minRoll,
+                dice.maxRoll,
+                dice.description,
+            ]
+        );
+    }
     await dbClient.end();
     return card;
 };
@@ -303,10 +335,41 @@ export const getCanvasLines = (
 
 export const resetDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
+    dbClient.on('error', (err) => {
+        console.error('Database error:', err);
+    });
+
+    // delete everything
     await dbClient.connect();
-    dbClient.query(`CREATE TABLE cards (
-        name    text,
-        cost 
+    await dbClient.query('DROP TABLE IF EXISTS dice');
+    await dbClient.query('DROP TABLE IF EXISTS cards');
+    await dbClient.query('DROP TYPE IF EXISTS dice_category');
+    await dbClient.query('DROP TYPE IF EXISTS dice_type');
+
+    // create everything
+    await dbClient.query(
+        "CREATE TYPE dice_type AS ENUM ('Slash', 'Pierce', 'Blunt', 'Guard', 'Evade')"
+    );
+    await dbClient.query(
+        "CREATE TYPE dice_category AS ENUM ('Offensive', 'Defensive', 'Counter')"
+    );
+    await dbClient.query(`CREATE TABLE cards (
+        id              int primary key,
+        name            text,
+        cost            int,
+        description     text,
+        range           text,
+        image_url       text,
+        rarity_color    text
+    )`);
+    await dbClient.query(`CREATE TABLE dice (
+        card_id         int references cards(id),
+        category        dice_category,
+        type            dice_type,
+        min_roll        int,
+        max_roll        int,
+        description     text
     )`);
     await dbClient.end();
+    await getCardData('test');
 };

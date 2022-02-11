@@ -1,7 +1,7 @@
 import { Client, Collection, Intents } from 'discord.js';
 import { COMMANDS_PATH, env, EVENTS_PATH } from './constants';
 import { ClientEvent, Command } from './types';
-import { importDefaults } from './utils';
+import { importDefaults, resetDatabase } from './utils';
 
 const token = env.BOT_TOKEN;
 
@@ -27,6 +27,8 @@ const setupEvents = async () => {
         }
     }
 };
+
+resetDatabase();
 
 setupCommands();
 setupEvents();

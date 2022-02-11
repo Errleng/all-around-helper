@@ -9,6 +9,13 @@ if (rawEnv.error || rawEnv.parsed === undefined) {
 }
 
 export const env = dotenvParseVariables(rawEnv.parsed) as NodeJS.ProcessEnv;
+export const POSTGRES_CONNECTION = {
+    database: env.PGDATABASE,
+    user: env.PGUSER,
+    password: env.PGPASSWORD,
+    host: env.PGHOST,
+    port: env.PGPORT,
+};
 
 export const ALLOWED_CHANNEL_IDS = ['770488167719501867', '936394221940772864'];
 

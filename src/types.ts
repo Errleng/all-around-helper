@@ -20,7 +20,7 @@ export interface ClientEvent {
 
 export interface Card {
     name: string;
-    cost: string;
+    cost: number;
     description: string;
     range: string;
     rangeFileName: string;
@@ -32,7 +32,8 @@ export interface Card {
 export interface Dice {
     category: DiceCategory;
     type: DiceType;
-    roll: string;
+    minRoll: number;
+    maxRoll: number;
     desc: string;
 }
 

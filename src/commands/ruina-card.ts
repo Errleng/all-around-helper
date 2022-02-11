@@ -100,12 +100,13 @@ const command: Command = {
             if (env.USE_CUSTOM_EMOJIS) {
                 diceEmoji = DICE_TYPE_CUSTOM_EMOJI_MAP[emojiKey];
             }
+            const diceRoll = `${dice.minRoll}-${dice.maxRoll}`;
             if (env.USE_COLORED_TEXT) {
                 text += `\`\`\`${getSyntaxForColor(
                     DICE_CATEGORY_COLOR_MAP[diceCategory]
-                )}\n${diceEmoji}[${dice.roll}]\t${dice.desc}\n\`\`\``;
+                )}\n${diceEmoji}[${diceRoll}]\t${dice.desc}\n\`\`\``;
             } else {
-                text += `\n${diceEmoji}\t\t\t**${dice.roll}**\t\t\t${dice.desc}`;
+                text += `\n${diceEmoji}\t\t\t**${diceRoll}**\t\t\t${dice.desc}`;
             }
         });
 

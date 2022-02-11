@@ -12,6 +12,11 @@ declare global {
             REQUEST_LIMIT: number;
             USE_COLORED_TEXT: boolean;
             USE_CUSTOM_EMOJIS: boolean;
+            PGUSER: string;
+            PGDATABASE: string;
+            PGPASSWORD: string;
+            PGHOST: string;
+            PGPORT: number;
         }
     }
 }

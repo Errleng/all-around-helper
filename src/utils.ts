@@ -14,7 +14,9 @@ import {
     CARD_RANGE_IMAGE_MAP,
     CARD_RARITY_COLOR_MAP,
     env,
+    POSTGRES_CONNECTION,
 } from './constants';
+import { Client } from 'pg';
 
 export const getFileNamesNoExt: (dirPath: string) => string[] = (dirPath) => {
     return fs
@@ -129,9 +131,13 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         );
     }
 
-    const cardCost = document.querySelector('.card_cost')?.textContent;
-    if (!cardCost) {
+    const cardCostText = document.querySelector('.card_cost')?.textContent;
+    if (!cardCostText) {
         throw new Error(`Card ${closestCardName} cost is invalid!`);
+    }
+    const cardCost = parseInt(cardCostText, 10);
+    if (isNaN(cardCost)) {
+        throw new Error(`Cannot parse ${cardCostText} as a number`);
     }
 
     const cardDice: Dice[] = [];
@@ -139,9 +145,8 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
     cardDiceElems.forEach((diceElem) => {
         const diceCategory = diceElem.getAttribute('data-type');
         const diceType = diceElem.getAttribute('data-detail');
-        const diceRoll = diceElem
-            .querySelector('.card_dice_range')
-            ?.textContent?.replace(' - ', '-');
+        const diceRoll =
+            diceElem.querySelector('.card_dice_range')?.textContent;
         let diceDesc = diceElem.querySelector(
             '.card_dice_desc span[data-lang="en"]:not(:empty)'
         )?.textContent;
@@ -175,10 +180,20 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
             Evade: DiceType.Evade,
         };
 
+        const diceRolls = diceRoll.split(' - ');
+        const minRoll = parseInt(diceRolls[0]);
+        const maxRoll = parseInt(diceRolls[1]);
+        if (isNaN(minRoll) || isNaN(maxRoll)) {
+            throw new Error(
+                `Could not parse dice rolls ${diceRolls} to numbers`
+            );
+        }
+
         const dice: Dice = {
             category: diceCategoryMap[diceCategory],
             type: diceTypeMap[diceType],
-            roll: diceRoll,
+            minRoll,
+            maxRoll,
             desc: diceDesc,
         };
         cardDice.push(dice);
@@ -210,6 +225,9 @@ export const getCardData: (cardName: string) => Promise<Card> = async (
         rarityColor: cardRarityColor,
         dice: cardDice,
     };
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    await dbClient.end();
     return card;
 };
 
@@ -281,4 +299,14 @@ export const getCanvasLines = (
     }
     lines.push(currentLine);
     return lines;
+};
+
+export const resetDatabase = async () => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    dbClient.query(`CREATE TABLE cards (
+        name    text,
+        cost 
+    )`);
+    await dbClient.end();
 };

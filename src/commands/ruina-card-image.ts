@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import * as Canvas from 'canvas';
 import { CommandInteraction, MessageAttachment } from 'discord.js';
-import { ASSETS_PATH, DICE_CATEGORY_JS_COLOR_MAP, env } from '../constants';
+import { ASSETS_PATH, DICE_CATEGORY_JS_COLOR_MAP } from '../constants';
 import { Card, Command, DiceCategory, DiceType } from '../types';
 import {
     getCanvasLines,
@@ -66,14 +66,15 @@ const drawCardDice: (
 
         context.font = `20px ${fontName}`;
         context.fillStyle = DICE_CATEGORY_JS_COLOR_MAP[dice.category];
-        lineHeight = getTextHeight(context, dice.roll);
+        const diceRoll = `${dice.minRoll}-${dice.maxRoll}`;
+        lineHeight = getTextHeight(context, diceRoll);
         context.fillText(
-            dice.roll,
+            diceRoll,
             diceIconWidth + 20,
             diceY + diceIconHeight * (i + 0.5) + lineHeight / 2
         );
 
-        const rollWidth = context.measureText(dice.roll).width;
+        const rollWidth = context.measureText(diceRoll).width;
         const descX = diceIconWidth + rollWidth + 30;
         const descLines = getCanvasLines(
             context,

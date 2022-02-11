@@ -371,5 +371,7 @@ export const resetDatabase = async () => {
         description     text
     )`);
     await dbClient.end();
-    await getCardData('test');
+
+    // for testing
+    // await getCardData('test');
 };

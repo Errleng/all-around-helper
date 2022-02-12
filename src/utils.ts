@@ -286,7 +286,7 @@ export const getCardDataTiphereth: (cardName: string) => Promise<Card> = async (
 };
 
 export const getCardsFromXml = (xml: string) => {
-    const ALWAYS_ARRAY_TAGS = ['Card', 'Behaviour'];
+    const ALWAYS_ARRAY_TAGS = ['Card', 'Behaviour', 'Desc'];
     const xmlParser = new XMLParser({
         ignoreAttributes: false,
         // attributeNamePrefix: '',
@@ -349,10 +349,11 @@ export const getCardsFromXml = (xml: string) => {
                 continue;
             }
 
-            const abilityDesc = ability['Desc'];
-            if (!abilityDesc) {
+            const abilityDescs = ability['Desc'];
+            if (!abilityDescs || abilityDescs.length === 0) {
                 continue;
             }
+            const abilityDesc = abilityDescs.join('\n');
             // console.log(
             //     `found ability ${abilityId} for card ${cardId} in ${abilityFile}`
             // );
@@ -382,6 +383,9 @@ export const getCardsFromXml = (xml: string) => {
                     abilityDesc = diceDescs.find(
                         (desc) => desc['@_ID'] === diceIndex.toString()
                     );
+                    if (abilityDesc) {
+                        abilityDesc = abilityDesc['#text'];
+                    }
                 }
             }
             if (!abilityDesc) {
@@ -468,17 +472,6 @@ export const getCardsFromXml = (xml: string) => {
             dice,
         };
         cards.push(card);
-    }
-
-    const uniqueCards: Card[] = [];
-    for (const card of cards) {
-        if (uniqueCards.some((existing) => existing.id === card.id)) {
-            console.warn(
-                `found card that already exists: ${card.name} (${card.id})`
-            );
-            continue;
-        }
-        uniqueCards.push(card);
     }
 
     return cards;

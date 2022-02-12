@@ -22,24 +22,24 @@ export const ASSETS_PATH = 'assets';
 export const COMMANDS_PATH = './commands';
 export const EVENTS_PATH = './events';
 export const DICE_TYPE_EMOJI_MAP: Record<string, string> = {
-    DefEvade: '🔄',
+    DefEvasion: '🔄',
     DefGuard: '🛡️',
     AtkSlash: '🔪',
     AtkPenetrate: '📌',
     AtkHit: '💥',
-    StandbyEvade: '🔄',
+    StandbyEvasion: '🔄',
     StandbyGuard: '🛡️',
     StandbySlash: '🔪',
     StandbyPenetrate: '📌',
     StandbyHit: '💥',
 };
 export const DICE_TYPE_CUSTOM_EMOJI_MAP: Record<string, string> = {
-    DefEvade: '<:defensiveevade:940003206648438824>',
+    DefEvasion: '<:defensiveevade:940003206648438824>',
     DefGuard: '<:defensiveguard:940003206094782514>',
     AtkSlash: '<:offensiveslash:940003206031872021>',
     AtkPenetrate: '<:offensivepierce:940003206270976010>',
     AtkHit: '<:offensiveblunt:940003205826367519>',
-    StandbyEvade: '<:counterevade:940003205654401067>',
+    StandbyEvasion: '<:counterevade:940003205654401067>',
     StandbyGuard: '<:counterguard:940003205750870059>',
     StandbySlash: '<:counterslash:939986712833196112>',
     StandbyPenetrate: '<:counterpierce:940003206241599518>',
@@ -90,4 +90,17 @@ export const CARD_RANGE_IMAGE_MAP: Record<CardRange, string> = {
     [CardRange.FarArea]: 'range-mass.png',
     [CardRange.FarAreaEach]: 'range-mass.png',
     [CardRange.Instance]: 'range-instant.png',
+};
+
+export const DICE_IMAGE_MAP: Record<string, string> = {
+    DefEvasion: 'defensive-evade.png',
+    DefGuard: 'defensive-guard.png',
+    AtkSlash: 'offensive-slash.png',
+    AtkPenetrate: 'offensive-pierce.png',
+    AtkHit: 'offensive-blunt.png',
+    StandbyEvasion: 'counter-evade.png',
+    StandbyGuard: 'counter-guard.png',
+    StandbySlash: 'counter-slash.png',
+    StandbyPenetrate: 'counter-pierce.png',
+    StandbyHit: 'counter-blunt.png',
 };

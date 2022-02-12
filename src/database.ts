@@ -72,7 +72,19 @@ const populateDatabase = async () => {
         const xmlCards = getCardsFromXml(xml);
         xmlCards.forEach((card) => cards.push(card));
     }
+
+    const uniqueCards: Card[] = [];
     for (const card of cards) {
+        if (uniqueCards.some((existing) => existing.id === card.id)) {
+            console.warn(
+                `found card that already exists: ${card.name} (${card.id})`
+            );
+            continue;
+        }
+        uniqueCards.push(card);
+    }
+
+    for (const card of uniqueCards) {
         await insertCardIntoDatabase(card);
     }
 };
@@ -124,13 +136,6 @@ export const getCardsFromDatabase = async (cardName: string) => {
 const insertCardIntoDatabase = async (card: Card) => {
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
-    const res = await dbClient.query(
-        'SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1)',
-        [card.id]
-    );
-    if (res.rows[0].exists) {
-        console.log('DUPLICATE KEY', card, res);
-    }
     await dbClient.query(
         'INSERT INTO cards VALUES($1, $2, $3, $4, $5, $6, $7)',
         [
@@ -158,4 +163,5 @@ const insertCardIntoDatabase = async (card: Card) => {
         );
     }
     await dbClient.end();
+    console.log(`inserted ${card.name} (${card.id}) into the database`);
 };

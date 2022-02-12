@@ -2,7 +2,11 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 import * as Canvas from 'canvas';
 import { CommandInteraction, MessageAttachment } from 'discord.js';
 import { getCardsFromDatabase } from '../database';
-import { ASSETS_PATH, DICE_CATEGORY_COLOR_MAP } from '../constants';
+import {
+    ASSETS_PATH,
+    DICE_CATEGORY_COLOR_MAP,
+    DICE_IMAGE_MAP,
+} from '../constants';
 import { Card, Command, DiceCategory, DiceType } from '../types';
 import { getCanvasLines, getTextHeight, onCommandInteraction } from '../utils';
 
@@ -56,7 +60,9 @@ const drawCardDice: (
 
         const diceCategory = DiceCategory[dice.category];
         const diceType = DiceType[dice.type];
-        const diceImagePath = `${ASSETS_PATH}/images/${diceCategory}-${diceType}.png`;
+        const diceImagePath = `${ASSETS_PATH}/images/${
+            DICE_IMAGE_MAP[`${diceCategory}${diceType}`]
+        }`;
         const diceArt = await Canvas.loadImage(diceImagePath);
         context.drawImage(diceArt, 10, diceY + diceIconHeight * i, 50, 50);
 

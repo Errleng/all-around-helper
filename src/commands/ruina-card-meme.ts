@@ -1,12 +1,9 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction, MessageAttachment } from 'discord.js';
 import { Command } from '../types';
-import {
-    getCardDataTiphereth,
-    getCanvasLines,
-    onCommandInteraction,
-} from '../utils';
+import { getCanvasLines, onCommandInteraction } from '../utils';
 import * as Canvas from 'canvas';
+import { getCardsFromDatabase } from '../database';
 
 const command: Command = {
     permissions: [],
@@ -63,9 +60,9 @@ const command: Command = {
             return;
         }
 
-        let card = null;
+        let cards = null;
         try {
-            card = await getCardDataTiphereth(cardName);
+            cards = await getCardsFromDatabase(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -76,12 +73,13 @@ const command: Command = {
             return;
         }
 
-        if (!card) {
-            console.error('Card data is invalid:', card);
+        if (!cards || cards.length === 0) {
+            console.error('Card data is invalid:', cards);
             await interaction.reply({ content: errorMessage, ephemeral: true });
             return;
         }
 
+        const card = cards[0];
         const topTextHeight = 40;
         const bottomTextHeight = 290;
         const lineHeight = 32;

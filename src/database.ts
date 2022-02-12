@@ -1,7 +1,14 @@
 import fs from 'fs';
 import { Client } from 'pg';
 import { env, POSTGRES_CONNECTION } from './constants';
-import { Card, CardRange, CardRarity, DiceCategory, DiceType } from './types';
+import {
+    Card,
+    CardRange,
+    CardRarity,
+    Dice,
+    DiceCategory,
+    DiceType,
+} from './types';
 import { getCardsFromXml } from './utils';
 
 export const resetDatabase = async () => {
@@ -64,16 +71,66 @@ const populateDatabase = async () => {
         const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
         const xmlCards = getCardsFromXml(xml);
         xmlCards.forEach((card) => cards.push(card));
-        break;
     }
     for (const card of cards) {
         await insertCardIntoDatabase(card);
     }
 };
 
+export const getCardsFromDatabase = async (cardName: string) => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    const cards = await dbClient.query(
+        'SELECT * FROM cards WHERE LOWER(name) LIKE LOWER($1)',
+        [`%${cardName}%`]
+    );
+    const matches: Card[] = [];
+
+    for (const cardRow of cards.rows) {
+        console.log('card row:', cardRow);
+        const card: Card = {
+            id: cardRow.id,
+            name: cardRow.name,
+            description: cardRow.description,
+            cost: cardRow.cost,
+            rarity: CardRarity[cardRow.rarity as keyof typeof CardRarity],
+            range: CardRange[cardRow.range as keyof typeof CardRange],
+            image: cardRow.image,
+            dice: [],
+        };
+        const dice = await dbClient.query(
+            'SELECT * FROM dice WHERE card_id = $1 ORDER BY index',
+            [card.id]
+        );
+        for (const diceRow of dice.rows) {
+            console.log('dice row:', diceRow);
+            const die: Dice = {
+                category:
+                    DiceCategory[diceRow.category as keyof typeof DiceCategory],
+                type: DiceType[diceRow.type as keyof typeof DiceType],
+                minRoll: diceRow.min_roll,
+                maxRoll: diceRow.max_roll,
+                description: diceRow.description,
+            };
+            card.dice.push(die);
+        }
+        console.log('final card:', card);
+        matches.push(card);
+    }
+    await dbClient.end();
+    return matches;
+};
+
 const insertCardIntoDatabase = async (card: Card) => {
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
+    const res = await dbClient.query(
+        'SELECT EXISTS (SELECT 1 FROM cards WHERE id = $1)',
+        [card.id]
+    );
+    if (res.rows[0].exists) {
+        console.log('DUPLICATE KEY', card, res);
+    }
     await dbClient.query(
         'INSERT INTO cards VALUES($1, $2, $3, $4, $5, $6, $7)',
         [

@@ -19,10 +19,8 @@ import fetch from 'node-fetch';
 import {
     ALLOWED_CHANNEL_IDS,
     env,
-    POSTGRES_CONNECTION,
     TIPHERETH_CARD_RANGE_RAW_DATA_MAP,
 } from './constants';
-import { Client } from 'pg';
 import { XMLParser } from 'fast-xml-parser';
 import { inspect } from 'util';
 
@@ -83,7 +81,7 @@ export const findFileRecur: (
             }
         } else {
             const fileNameNoExt = path.parse(fileName).name;
-            if (fileNameNoExt === targetFileName) {
+            if (fileNameNoExt.toLowerCase() === targetFileName.toLowerCase()) {
                 return fullPath;
             }
         }
@@ -287,50 +285,8 @@ export const getCardDataTiphereth: (cardName: string) => Promise<Card> = async (
     return card;
 };
 
-export const getCardFromDatabase = async (cardName: string) => {
-    const dbClient = new Client(POSTGRES_CONNECTION);
-    await dbClient.connect();
-    const cards = await dbClient.query('SELECT * FROM cards WHERE name = $1', [
-        cardName,
-    ]);
-    const matches: Card[] = [];
-
-    for (const cardRow of cards.rows) {
-        console.log('card row:', cardRow);
-        const card: Card = {
-            id: cardRow.id,
-            name: cardRow.name,
-            description: cardRow.description,
-            cost: cardRow.cost,
-            rarity: cardRow.rarity,
-            range: cardRow.range,
-            image: cardRow.image,
-            dice: [],
-        };
-        const dice = await dbClient.query(
-            'SELECT * FROM dice WHERE card_id = $1 ORDER BY index',
-            [card.id]
-        );
-        for (const diceRow of dice.rows) {
-            console.log('dice row:', diceRow);
-            const die: Dice = {
-                category: diceRow.category,
-                type: diceRow.type,
-                minRoll: diceRow.min_roll,
-                maxRoll: diceRow.max_roll,
-                description: diceRow.description,
-            };
-            card.dice.push(die);
-        }
-        console.log('final card:', card);
-        matches.push(card);
-    }
-    await dbClient.end();
-    return matches;
-};
-
 export const getCardsFromXml = (xml: string) => {
-    const ALWAYS_ARRAY_TAGS = ['Behaviour'];
+    const ALWAYS_ARRAY_TAGS = ['Card', 'Behaviour'];
     const xmlParser = new XMLParser({
         ignoreAttributes: false,
         // attributeNamePrefix: '',
@@ -339,90 +295,192 @@ export const getCardsFromXml = (xml: string) => {
     });
 
     const getCardName = (cardId: string) => {
-        const cardNamesXml = fs.readFileSync(
-            `${env.EXTRACTED_ASSETS_DIR}/Text/EN/EN_BattleCards.txt`,
-            'utf-8'
-        );
-        const cardNamesJs = xmlParser.parse(cardNamesXml);
-        console.log('card names parsed:', cardNamesJs);
-        const cardDescs: any[] =
-            cardNamesJs['BattleCardDescRoot']['cardDescList']['BattleCardDesc'];
-        const cardDesc = cardDescs.find((desc) => desc['@_ID'] === cardId);
-        if (cardDesc === undefined) {
-            throw new Error(`Could not find card name with id: ${cardDesc}`);
+        const cardNamesFiles = fs
+            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/Text/EN`)
+            .filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
+        for (const cardNameFile of cardNamesFiles) {
+            const cardNamesXml = fs.readFileSync(
+                `${env.EXTRACTED_ASSETS_DIR}/Text/EN/${cardNameFile}`,
+                'utf-8'
+            );
+            const cardNamesJs = xmlParser.parse(cardNamesXml);
+            const cardDescs: any[] =
+                cardNamesJs['BattleCardDescRoot']['cardDescList'][
+                    'BattleCardDesc'
+                ];
+            const cardDesc = cardDescs.find((desc) => desc['@_ID'] === cardId);
+            if (cardDesc === undefined) {
+                // may be a Korean-only card
+                continue;
+            }
+            const cardName = cardDesc['LocalizedName'];
+            if (!cardName) {
+                continue;
+            }
+            // console.log(
+            //     `found card name ${cardName} for card ${cardId} in file ${cardNameFile}`
+            // );
+            return cardName;
         }
-        return cardDesc['LocalizedName'];
+        console.warn(`could not find card name for ${cardId}`);
+        return null;
     };
 
-    const getAbilityText = (abilityId: string) => {
-        const abilitiesXml = fs.readFileSync(
-            `${env.EXTRACTED_ASSETS_DIR}/Text/EN/EN_BattleCardAbilities.txt`,
-            'utf-8'
-        );
-        const abilitiesJs = xmlParser.parse(abilitiesXml);
-        console.log('card abilities parsed:', abilitiesJs);
-        const abilities: any[] =
-            abilitiesJs['BattleCardAbilityDescRoot']['BattleCardAbility'];
-        const ability = abilities.find((desc) => desc['@_ID'] === abilityId);
-        if (ability === undefined) {
-            throw new Error(`Could not find ability with id: ${abilityId}`);
+    const getAbilityText = (
+        cardId: string,
+        abilityId: string,
+        diceIndex?: number
+    ) => {
+        const abilityFiles = fs
+            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/Text/EN`)
+            .filter((name) => /EN_BattleCardAbilities.*/.test(name));
+        for (const abilityFile of abilityFiles) {
+            const abilitiesXml = fs.readFileSync(
+                `${env.EXTRACTED_ASSETS_DIR}/Text/EN/${abilityFile}`,
+                'utf-8'
+            );
+            const abilitiesJs = xmlParser.parse(abilitiesXml);
+            const abilities: any[] =
+                abilitiesJs['BattleCardAbilityDescRoot']['BattleCardAbility'];
+            const ability = abilities.find(
+                (desc) => desc['@_ID'] === abilityId
+            );
+            if (ability === undefined) {
+                continue;
+            }
+
+            const abilityDesc = ability['Desc'];
+            if (!abilityDesc) {
+                continue;
+            }
+            // console.log(
+            //     `found ability ${abilityId} for card ${cardId} in ${abilityFile}`
+            // );
+            return abilityDesc;
         }
-        return ability['Desc'];
+
+        const cardFiles = fs
+            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/Text/EN`)
+            .filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
+        for (const cardFile of cardFiles) {
+            const cardXml = fs.readFileSync(
+                `${env.EXTRACTED_ASSETS_DIR}/Text/EN/${cardFile}`,
+                'utf-8'
+            );
+            const cardJs = xmlParser.parse(cardXml);
+            const cardDescs: any[] =
+                cardJs['BattleCardDescRoot']['cardDescList']['BattleCardDesc'];
+            const cardDesc = cardDescs.find((desc) => desc['@_ID'] === cardId);
+            if (cardDesc === undefined) {
+                // may be a Korean-only card
+                continue;
+            }
+            let abilityDesc = cardDesc['Ability'];
+            if (diceIndex !== undefined) {
+                const diceDescs: any[] = cardDesc['Behaviour'];
+                if (diceDescs) {
+                    abilityDesc = diceDescs.find(
+                        (desc) => desc['@_ID'] === diceIndex.toString()
+                    );
+                }
+            }
+            if (!abilityDesc) {
+                continue;
+            }
+            // console.log(
+            //     `found ability ${abilityId} for card ${cardId} in ${cardFile}`
+            // );
+            return abilityDesc;
+        }
+        console.warn(
+            `could not find ability with id: ${abilityId} for card ${cardId} and dice ${diceIndex}`
+        );
+        return '';
     };
 
     const getImagePath = (artworkId: string) => {
+        if (!artworkId) {
+            console.warn('invalid artwork id:', artworkId);
+            return null;
+        }
         const imageDir = `${env.EXTRACTED_ASSETS_DIR}/RawImages`;
         const imagePath = findFileRecur(artworkId, imageDir);
         if (imagePath === null) {
-            throw new Error(`Could not find image of card: ${artworkId}`);
+            // some cards just have no image
+            return null;
         }
-        console.log(`Found image path for ${artworkId}: ${imagePath}`);
         return imagePath;
     };
 
-    console.log('xml', xml);
     const jsObj = xmlParser.parse(xml);
-    console.log(inspect(jsObj, false, null));
 
     const jsCards = jsObj['DiceCardXmlRoot']['Card'];
     const cards: Card[] = [];
     for (const jsCard of jsCards) {
-        const diceBehaviours = jsCard['BehaviourList']['Behaviour'];
-        console.log('dice behaviour', diceBehaviours);
+        let diceBehaviours: any[] = jsCard['BehaviourList']['Behaviour'];
+        if (!diceBehaviours) {
+            // some cards have no dice
+            diceBehaviours = [];
+        }
         const dice: Dice[] = [];
-        for (const behaviour of diceBehaviours) {
+        const cardId = jsCard['@_ID'];
+
+        for (const [i, behaviour] of diceBehaviours.entries()) {
             const category =
                 DiceCategory[behaviour['@_Type'] as keyof typeof DiceCategory];
             const type =
                 DiceType[behaviour['@_Detail'] as keyof typeof DiceType];
+            const script = behaviour['@_Script'];
+            let scriptDesc = '';
+            if (script) {
+                scriptDesc = getAbilityText(cardId, script, i);
+            }
             const die: Dice = {
                 category,
                 type,
                 minRoll: behaviour['@_Min'],
                 maxRoll: behaviour['@_Dice'],
-                description: behaviour['@_Desc'],
+                description: scriptDesc,
             };
             dice.push(die);
         }
 
         const spec = jsCard['Spec'];
-
-        const cardId = jsCard['@_ID'];
         const cardScript = jsCard['Script'];
-        const cardName = getCardName(cardId);
+        const cardName = getCardName(cardId) ?? jsCard['Name'];
+        const cardImage = getImagePath(jsCard['Artwork']);
+        if (cardImage === null) {
+            // probably a card that is cut from the game
+            console.log(
+                `skipping card ${cardName} (${cardId}) because it has no image`
+            );
+            continue;
+        }
 
         const card: Card = {
             id: Number(cardId),
             name: cardName,
-            description: cardScript ? getAbilityText(cardScript) : '',
+            description: cardScript ? getAbilityText(cardId, cardScript) : '',
             cost: Number(spec['@_Cost']),
             range: CardRange[spec['@_Range'] as keyof typeof CardRange],
             rarity: CardRarity[jsCard['Rarity'] as keyof typeof CardRarity],
-            image: getImagePath(jsCard['Artwork']),
+            image: cardImage,
             dice,
         };
         cards.push(card);
     }
+
+    const uniqueCards: Card[] = [];
+    for (const card of cards) {
+        if (uniqueCards.some((existing) => existing.id === card.id)) {
+            console.warn(
+                `found card that already exists: ${card.name} (${card.id})`
+            );
+            continue;
+        }
+        uniqueCards.push(card);
+    }
+
     return cards;
 };
 

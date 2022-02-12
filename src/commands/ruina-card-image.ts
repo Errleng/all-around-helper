@@ -1,14 +1,10 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import * as Canvas from 'canvas';
 import { CommandInteraction, MessageAttachment } from 'discord.js';
+import { getCardsFromDatabase } from '../database';
 import { ASSETS_PATH, DICE_CATEGORY_COLOR_MAP } from '../constants';
 import { Card, Command, DiceCategory, DiceType } from '../types';
-import {
-    getCanvasLines,
-    getCardDataTiphereth,
-    getTextHeight,
-    onCommandInteraction,
-} from '../utils';
+import { getCanvasLines, getTextHeight, onCommandInteraction } from '../utils';
 
 const drawCardDice: (
     canvas: Canvas.Canvas,
@@ -154,9 +150,9 @@ const command: Command = {
             return;
         }
 
-        let card = null;
+        let cards = null;
         try {
-            card = await getCardDataTiphereth(cardName);
+            cards = await getCardsFromDatabase(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -167,11 +163,12 @@ const command: Command = {
             return;
         }
 
-        if (!card) {
-            console.error('Card data is invalid:', card);
+        if (!cards || cards.length === 0) {
+            console.error('Card data is invalid:', cards);
             await interaction.reply({ content: errorMessage, ephemeral: true });
             return;
         }
+        const card = cards[0];
 
         await interaction.deferReply();
 

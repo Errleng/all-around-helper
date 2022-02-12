@@ -6,20 +6,18 @@ import {
     MessageEmbed,
 } from 'discord.js';
 import { Command, DiceCategory, DiceType } from '../types';
-import {
-    getCardDataTiphereth,
-    getSyntaxForColor,
-    onCommandInteraction,
-} from '../utils';
+import { getSyntaxForColor, onCommandInteraction } from '../utils';
 import {
     ASSETS_PATH,
-    TIPHERETH_CARD_RANGE_IMAGE_MAP,
     DICE_CATEGORY_COLOR_MAP,
     DICE_TYPE_CUSTOM_EMOJI_MAP,
     DICE_TYPE_EMOJI_MAP,
     env,
     CARD_RARITY_COLOR_MAP,
+    CARD_RANGE_IMAGE_MAP,
 } from '../constants';
+import { getCardsFromDatabase } from '../database';
+import path from 'path';
 
 let useCount = 0;
 setInterval(() => {
@@ -71,9 +69,9 @@ const command: Command = {
             return;
         }
 
-        let card = null;
+        let cards = null;
         try {
-            card = await getCardDataTiphereth(cardName);
+            cards = await getCardsFromDatabase(cardName);
         } catch (e) {
             if (e instanceof Error) {
                 console.error('Error while getting card data', e.message, e);
@@ -84,16 +82,17 @@ const command: Command = {
             return;
         }
 
-        if (!card) {
-            console.error('Card data is invalid:', card);
+        if (!cards || cards.length === 0) {
+            console.error('Card data is invalid:', cards);
             await interaction.reply({ content: errorMessage, ephemeral: true });
             return;
         }
+        const card = cards[0];
 
+        const cardImage = new MessageAttachment(card.image);
+        const cardRangeImageName = CARD_RANGE_IMAGE_MAP[card.range];
         const cardRangeImage = new MessageAttachment(
-            `${ASSETS_PATH}/images/${
-                TIPHERETH_CARD_RANGE_IMAGE_MAP[card.range]
-            }`
+            `${ASSETS_PATH}/images/${cardRangeImageName}`
         );
         let text = card.description;
         if (text.length > 0) {
@@ -122,13 +121,11 @@ const command: Command = {
             .setColor(CARD_RARITY_COLOR_MAP[card.rarity] as ColorResolvable)
             .setTitle(`${card.name}\t${card.cost}:bulb:`)
             .setDescription(text)
-            .setImage(card.image)
-            .setThumbnail(
-                `attachment://${TIPHERETH_CARD_RANGE_IMAGE_MAP[card.range]}`
-            );
+            .setImage(`attachment://${path.basename(card.image)}`)
+            .setThumbnail(`attachment://${cardRangeImageName}`);
         await interaction.reply({
             embeds: [embed],
-            files: [cardRangeImage],
+            files: [cardImage, cardRangeImage],
         });
     },
 };

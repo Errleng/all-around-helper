@@ -29,9 +29,9 @@ const setupEvents = async () => {
     }
 };
 
+// resetDatabase();
+
 setupCommands();
 setupEvents();
 // Login to Discord with your client's token
-// client.login(token);
-
-resetDatabase().then(() => process.kill(process.pid, 'SIGTERM'));
+client.login(token);

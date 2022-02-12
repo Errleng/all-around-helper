@@ -99,7 +99,7 @@ export const getCardsFromDatabase = async (cardName: string) => {
     const matches: Card[] = [];
 
     for (const cardRow of cards.rows) {
-        console.log('card row:', cardRow);
+        // console.log('card row:', cardRow);
         const card: Card = {
             id: cardRow.id,
             name: cardRow.name,
@@ -115,7 +115,7 @@ export const getCardsFromDatabase = async (cardName: string) => {
             [card.id]
         );
         for (const diceRow of dice.rows) {
-            console.log('dice row:', diceRow);
+            // console.log('dice row:', diceRow);
             const die: Dice = {
                 category:
                     DiceCategory[diceRow.category as keyof typeof DiceCategory],
@@ -126,7 +126,7 @@ export const getCardsFromDatabase = async (cardName: string) => {
             };
             card.dice.push(die);
         }
-        console.log('final card:', card);
+        // console.log('final card:', card);
         matches.push(card);
     }
     await dbClient.end();

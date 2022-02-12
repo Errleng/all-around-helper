@@ -55,6 +55,7 @@ const command: Command = {
                     ephemeral: true,
                 });
             }
+            return;
         }
 
         const cardName = interaction.options.getString('cardname');

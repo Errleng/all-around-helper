@@ -32,8 +32,6 @@ const setupEvents = async () => {
 setupCommands();
 setupEvents();
 // Login to Discord with your client's token
-// resetDatabase().then(() => {
-//     client.login(token);
-// });
+// resetDatabase();
 
 client.login(token);

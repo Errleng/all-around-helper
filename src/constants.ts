@@ -45,6 +45,31 @@ export const DICE_TYPE_CUSTOM_EMOJI_MAP: Record<string, string> = {
     StandbyPenetrate: '<:counterpierce:940003206241599518>',
     StandbyHit: '<:counterslash:940003205910249594>',
 };
+export const UNICODE_ASCII_MAP: Record<number, string> = {
+    192: 'A',
+    201: 'E',
+    224: 'a',
+    225: 'a',
+    232: 'e',
+    235: 'e',
+    236: 'i',
+    237: 'i',
+    242: 'o',
+    244: 'o',
+    250: 'u',
+    257: 'a',
+    283: 'e',
+    299: 'i',
+    363: 'u',
+    65039: '',
+    7929: 'y',
+    8217: "'",
+    8230: '...',
+    8544: 'I',
+    8545: 'II',
+    8546: 'III',
+    8547: 'IV',
+};
 
 // MAPPINGS
 // General
@@ -104,3 +129,7 @@ export const DICE_IMAGE_MAP: Record<string, string> = {
     StandbyPenetrate: 'counter-pierce.png',
     StandbyHit: 'counter-blunt.png',
 };
+
+// Discord
+export const MAX_ACTION_ROWS = 5;
+export const MAX_BUTTONS_PER_ROW = 5;

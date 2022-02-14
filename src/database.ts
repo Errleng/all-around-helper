@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { Client } from 'pg';
-import { env, POSTGRES_CONNECTION } from './constants';
+import { env, POSTGRES_CONNECTION, UNICODE_ASCII_MAP } from './constants';
 import {
     Card,
     CardRange,
@@ -65,7 +65,9 @@ const populateDatabase = async () => {
     const cardInfoFiles = fs
         .readdirSync(textFilesPath)
         .filter((name) => /CardInfo_.*/.test(name));
+
     console.log('card info files:', cardInfoFiles);
+
     const cards: Card[] = [];
     for (const fileName of cardInfoFiles) {
         const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
@@ -84,9 +86,24 @@ const populateDatabase = async () => {
         uniqueCards.push(card);
     }
 
+    const unicodes = new Map();
+
     for (const card of uniqueCards) {
+        // replace Unicode characters with closest equivalents
+        let filteredName = '';
+        for (let i = 0; i < card.name.length; i++) {
+            const charCode = card.name.charCodeAt(i);
+            if (charCode in UNICODE_ASCII_MAP) {
+                filteredName += UNICODE_ASCII_MAP[charCode];
+            } else {
+                filteredName += card.name.charAt(i);
+            }
+        }
+        card.name = filteredName;
+
         await insertCardIntoDatabase(card);
     }
+    console.log(JSON.stringify(Object.fromEntries(unicodes)));
 };
 
 export const getCardsFromDatabase = async (cardName: string) => {
@@ -163,5 +180,4 @@ const insertCardIntoDatabase = async (card: Card) => {
         );
     }
     await dbClient.end();
-    console.log(`inserted ${card.name} (${card.id}) into the database`);
 };

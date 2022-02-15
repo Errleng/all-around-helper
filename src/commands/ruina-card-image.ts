@@ -1,11 +1,19 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import * as Canvas from 'canvas';
-import { CommandInteraction, MessageAttachment } from 'discord.js';
+import {
+    ButtonInteraction,
+    CommandInteraction,
+    MessageActionRow,
+    MessageAttachment,
+    MessageButton,
+} from 'discord.js';
 import { getCardsFromDatabase } from '../database';
 import {
     ASSETS_PATH,
     DICE_CATEGORY_COLOR_MAP,
     DICE_IMAGE_MAP,
+    MAX_ACTION_ROWS,
+    MAX_BUTTONS_PER_ROW,
 } from '../constants';
 import { Card, Command, DiceCategory, DiceType } from '../types';
 import { getCanvasLines, getTextHeight, onCommandInteraction } from '../utils';
@@ -157,7 +165,7 @@ const command: Command = {
             return;
         }
 
-        let cards = null;
+        let cards: Card[] | null = null;
         try {
             cards = await getCardsFromDatabase(cardName);
         } catch (e) {
@@ -171,26 +179,82 @@ const command: Command = {
         }
 
         if (!cards || cards.length === 0) {
-            console.error('Card data is invalid:', cards);
-            await interaction.reply({ content: errorMessage, ephemeral: true });
+            console.error('No cards found:', cards);
+            await interaction.reply({
+                content: `No results for card named "${cardName}"`,
+                ephemeral: true,
+            });
             return;
         }
-        const card = cards[0];
 
-        await interaction.deferReply();
+        const rows: MessageActionRow[] = [];
+        let currentRow = new MessageActionRow();
+        for (const card of cards) {
+            if (currentRow.components.length === MAX_BUTTONS_PER_ROW) {
+                rows.push(currentRow);
+                currentRow = new MessageActionRow();
+            }
+            if (rows.length === MAX_ACTION_ROWS) {
+                break;
+            }
+            currentRow.addComponents(
+                new MessageButton()
+                    .setCustomId(card.id.toString())
+                    .setLabel(`${card.cost}💡 ${card.name} (${card.id})`)
+                    .setStyle('SECONDARY')
+            );
+        }
+        if (currentRow.components.length > 0) {
+            rows.push(currentRow);
+        }
 
-        const cardArt = new MessageAttachment(card.image, 'card-art.png');
-        // resize card dice image
-        const canvas = Canvas.createCanvas(410, 310);
-        const finalCanvas = await drawCardDice(canvas, card);
-        const cardDice = new MessageAttachment(
-            finalCanvas.toBuffer(),
-            'card-dice.png'
-        );
+        const collector = interaction.channel?.createMessageComponentCollector({
+            filter: (i: ButtonInteraction) => i.user.id === interaction.user.id,
+            componentType: 'BUTTON',
+            max: 1,
+            maxUsers: 1,
+            time: 15000,
+        });
 
-        interaction.ephemeral = false;
-        await interaction.editReply({
-            files: [cardArt, cardDice],
+        collector?.on('collect', async (i: ButtonInteraction) => {
+            if (!cards) {
+                console.error(
+                    `Card list is invalid: ${cards} when responding to button`
+                );
+                return;
+            }
+
+            const cardId = Number(i.customId);
+            const card = cards.find((c) => c.id === cardId);
+            if (!card) {
+                console.error(
+                    `Could not find card with id ${cardId} in card list: ${cards}`
+                );
+                return;
+            }
+
+            await interaction.editReply({
+                content: `Displaying ${card.name} (${card.id})`,
+                components: [],
+            });
+
+            const cardArt = new MessageAttachment(card.image, 'card-art.png');
+            // resize card dice image
+            const canvas = Canvas.createCanvas(410, 310);
+            const finalCanvas = await drawCardDice(canvas, card);
+            const cardDice = new MessageAttachment(
+                finalCanvas.toBuffer(),
+                'card-dice.png'
+            );
+            await i.reply({
+                files: [cardArt, cardDice],
+            });
+        });
+
+        await interaction.reply({
+            content: 'Search results',
+            components: rows,
+            ephemeral: true,
         });
     },
 };

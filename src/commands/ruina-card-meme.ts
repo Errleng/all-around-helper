@@ -1,9 +1,16 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction, MessageAttachment } from 'discord.js';
-import { Command } from '../types';
+import {
+    ButtonInteraction,
+    CommandInteraction,
+    MessageActionRow,
+    MessageAttachment,
+    MessageButton,
+} from 'discord.js';
+import { Card, Command } from '../types';
 import { getCanvasLines, onCommandInteraction } from '../utils';
 import * as Canvas from 'canvas';
 import { getCardsFromDatabase } from '../database';
+import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
 
 const command: Command = {
     permissions: [],
@@ -61,7 +68,7 @@ const command: Command = {
             return;
         }
 
-        let cards = null;
+        let cards: Card[] | null = null;
         try {
             cards = await getCardsFromDatabase(cardName);
         } catch (e) {
@@ -75,60 +82,121 @@ const command: Command = {
         }
 
         if (!cards || cards.length === 0) {
-            console.error('Card data is invalid:', cards);
-            await interaction.reply({ content: errorMessage, ephemeral: true });
+            console.error('No cards found:', cards);
+            await interaction.reply({
+                content: `No results for card named "${cardName}"`,
+                ephemeral: true,
+            });
             return;
         }
 
-        const card = cards[0];
-        const topTextHeight = 40;
-        const bottomTextHeight = 290;
-        const lineHeight = 32;
-        // card art is usually 410x310
-        const canvas = Canvas.createCanvas(410, 310);
-        const context = canvas.getContext('2d');
-        const cardImage = await Canvas.loadImage(card.image);
-        context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
-
-        const topText = interaction.options.getString('toptext') ?? '';
-        const bottomText = interaction.options.getString('bottomtext') ?? '';
-        context.font = '32px Impact';
-        context.fillStyle = '#FFFFFF';
-        context.strokeStyle = '#000000';
-        context.textAlign = 'center';
-        context.lineWidth = 5;
-
-        const topTextLines = getCanvasLines(context, topText, canvas.width);
-        for (let i = 0; i < topTextLines.length; i++) {
-            const line = topTextLines[i];
-            const lineY = topTextHeight + i * lineHeight;
-            context.strokeText(line, canvas.width / 2, lineY);
-            context.fillText(line, canvas.width / 2, lineY);
+        const rows: MessageActionRow[] = [];
+        let currentRow = new MessageActionRow();
+        for (const card of cards) {
+            if (currentRow.components.length === MAX_BUTTONS_PER_ROW) {
+                rows.push(currentRow);
+                currentRow = new MessageActionRow();
+            }
+            if (rows.length === MAX_ACTION_ROWS) {
+                break;
+            }
+            currentRow.addComponents(
+                new MessageButton()
+                    .setCustomId(card.id.toString())
+                    .setLabel(`${card.cost}💡 ${card.name} (${card.id})`)
+                    .setStyle('SECONDARY')
+            );
         }
-        const bottomTextLines = getCanvasLines(
-            context,
-            bottomText,
-            canvas.width
-        );
-        for (let i = 0; i < bottomTextLines.length; i++) {
-            const line = bottomTextLines[i];
-            const lineY =
-                bottomTextHeight -
-                (bottomTextLines.length - 1) * lineHeight +
-                i * lineHeight;
-            context.strokeText(line, canvas.width / 2, lineY);
-            context.fillText(line, canvas.width / 2, lineY);
+        if (currentRow.components.length > 0) {
+            rows.push(currentRow);
         }
 
-        const attachment = new MessageAttachment(
-            canvas.toBuffer(),
-            'card-image.png'
-        );
+        const collector = interaction.channel?.createMessageComponentCollector({
+            filter: (i: ButtonInteraction) => i.user.id === interaction.user.id,
+            componentType: 'BUTTON',
+            max: 1,
+            maxUsers: 1,
+            time: 15000,
+        });
 
-        console.log('image attachment', attachment);
+        collector?.on('collect', async (i: ButtonInteraction) => {
+            if (!cards) {
+                console.error(
+                    `Card list is invalid: ${cards} when responding to button`
+                );
+                return;
+            }
+
+            const cardId = Number(i.customId);
+            const card = cards.find((c) => c.id === cardId);
+            if (!card) {
+                console.error(
+                    `Could not find card with id ${cardId} in card list: ${cards}`
+                );
+                return;
+            }
+
+            await interaction.editReply({
+                content: `Displaying ${card.name} (${card.id})`,
+                components: [],
+            });
+
+            const topTextHeight = 40;
+            const bottomTextHeight = 290;
+            const lineHeight = 32;
+            // card art is usually 410x310
+            const canvas = Canvas.createCanvas(410, 310);
+            const context = canvas.getContext('2d');
+            const cardImage = await Canvas.loadImage(card.image);
+            context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
+
+            const topText = interaction.options.getString('toptext') ?? '';
+            const bottomText =
+                interaction.options.getString('bottomtext') ?? '';
+            context.font = '32px Impact';
+            context.fillStyle = '#FFFFFF';
+            context.strokeStyle = '#000000';
+            context.textAlign = 'center';
+            context.lineWidth = 5;
+
+            const topTextLines = getCanvasLines(context, topText, canvas.width);
+            for (let i = 0; i < topTextLines.length; i++) {
+                const line = topTextLines[i];
+                const lineY = topTextHeight + i * lineHeight;
+                context.strokeText(line, canvas.width / 2, lineY);
+                context.fillText(line, canvas.width / 2, lineY);
+            }
+            const bottomTextLines = getCanvasLines(
+                context,
+                bottomText,
+                canvas.width
+            );
+            for (let i = 0; i < bottomTextLines.length; i++) {
+                const line = bottomTextLines[i];
+                const lineY =
+                    bottomTextHeight -
+                    (bottomTextLines.length - 1) * lineHeight +
+                    i * lineHeight;
+                context.strokeText(line, canvas.width / 2, lineY);
+                context.fillText(line, canvas.width / 2, lineY);
+            }
+
+            const attachment = new MessageAttachment(
+                canvas.toBuffer(),
+                'card-image.png'
+            );
+
+            console.log('image attachment', attachment);
+
+            await i.reply({
+                files: [attachment],
+            });
+        });
 
         await interaction.reply({
-            files: [attachment],
+            content: 'Search results',
+            components: rows,
+            ephemeral: true,
         });
     },
 };

@@ -127,6 +127,7 @@ const command: Command = {
         }
 
         const collector = interaction.channel?.createMessageComponentCollector({
+            filter: (i: ButtonInteraction) => i.user.id === interaction.user.id,
             componentType: 'BUTTON',
             max: 1,
             maxUsers: 1,

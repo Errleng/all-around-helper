@@ -58,7 +58,6 @@ const command: Command = {
         }
 
         const cardName = interaction.options.getString('cardname');
-        const errorMessage = `An error occurred while trying to search for the card "${cardName}"`;
         if (!cardName) {
             console.error('Invalid card name', cardName);
             await interaction.reply({
@@ -77,7 +76,10 @@ const command: Command = {
             } else {
                 console.error('Error while getting card data', e);
             }
-            await interaction.reply({ content: errorMessage, ephemeral: true });
+            await interaction.reply({
+                content: `An error occurred while trying to search for the card "${cardName}"`,
+                ephemeral: true,
+            });
             return;
         }
 
@@ -116,10 +118,12 @@ const command: Command = {
             componentType: 'BUTTON',
             max: 1,
             maxUsers: 1,
-            time: 15000,
+            time: 60000,
         });
 
         collector?.on('collect', async (i: ButtonInteraction) => {
+            await i.deferReply();
+
             if (!cards) {
                 console.error(
                     `Card list is invalid: ${cards} when responding to button`
@@ -188,15 +192,21 @@ const command: Command = {
 
             console.log('image attachment', attachment);
 
-            await i.reply({
+            await i.editReply({
                 files: [attachment],
             });
+        });
+
+        collector?.on('end', (collected) => {
+            if (collected.size === 0) {
+                interaction.deleteReply();
+            }
         });
 
         await interaction.reply({
             content: 'Search results',
             components: rows,
-            ephemeral: true,
+            ephemeral: false,
         });
     },
 };

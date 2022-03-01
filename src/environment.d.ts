@@ -10,6 +10,7 @@ declare global {
             TEST_SERVER_ID: string;
             DATABASE_URL: string;
             REQUEST_LIMIT: number;
+            ALL_CHANNEL_REQUEST_LIMIT: number;
             USE_COLORED_TEXT: boolean;
             USE_CUSTOM_EMOJIS: boolean;
             PGUSER: string;

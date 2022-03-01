@@ -27,29 +27,48 @@ import { inspect } from 'util';
 let useCount = 0;
 setInterval(() => {
     if (useCount > 0) {
-        console.log(`ruina-card-meme reset useCount from ${useCount} to zero`);
+        console.log(`reset useCount from ${useCount} to zero`);
     }
     useCount = 0;
 }, 1000 * 60);
+
+let allChannelUseCount = 0;
+setInterval(() => {
+    if (allChannelUseCount > 0) {
+        console.log(`reset allChannelUseCount ${allChannelUseCount} to zero`);
+    }
+    allChannelUseCount = 0;
+}, 1000 * 60 * 60);
+
 export const onCommandInteraction = (interaction: CommandInteraction) => {
     console.log(
-        `Command ${interaction.commandName} used in channel ${
+        `${interaction.createdTimestamp} - Command ${
+            interaction.commandName
+        } used in channel "${
             interaction.guild?.channels.cache.get(interaction.channelId)?.name
-        } (${interaction.channelId})`
+        }" (${interaction.channelId}) by user ${
+            interaction.user.username
+        } with arguments ${interaction.options}`
     );
     if (
         interaction.guild &&
         !ALLOWED_CHANNEL_IDS.includes(interaction.channelId)
     ) {
-        const channelNames = getGuildChannelsFromIds(
-            interaction.guild,
-            ALLOWED_CHANNEL_IDS
-        ).map((channel) => `#${channel.name}`);
-        throw new Error(
-            `This bot is restricted to the channels \`${channelNames.join(
-                ', '
-            )}\``
-        );
+        // const channelNames = getGuildChannelsFromIds(
+        //     interaction.guild,
+        //     ALLOWED_CHANNEL_IDS
+        // ).map((channel) => `#${channel.name}`);
+        // throw new Error(
+        //     `This bot is restricted to the channels \`${channelNames.join(
+        //         ', '
+        //     )}\``
+        // );
+        if (allChannelUseCount >= env.ALL_CHANNEL_REQUEST_LIMIT) {
+            throw new Error(
+                `Exceeded all channel rate limit of ${env.ALL_CHANNEL_REQUEST_LIMIT} requests per hour.`
+            );
+        }
+        ++allChannelUseCount;
     }
 
     if (useCount >= env.REQUEST_LIMIT) {

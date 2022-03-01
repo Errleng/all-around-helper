@@ -131,10 +131,12 @@ const command: Command = {
             componentType: 'BUTTON',
             max: 1,
             maxUsers: 1,
-            time: 15000,
+            time: 60000,
         });
 
         collector?.on('collect', async (i: ButtonInteraction) => {
+            await i.deferReply();
+
             if (!cards) {
                 console.error(
                     `Card list is invalid: ${cards} when responding to button`
@@ -155,6 +157,7 @@ const command: Command = {
                 content: `Displaying ${card.name} (${card.id})`,
                 components: [],
             });
+            console.log('the interaction is', i);
 
             const cardImage = new MessageAttachment(card.image);
             const cardRangeImageName = CARD_RANGE_IMAGE_MAP[card.range];
@@ -192,16 +195,22 @@ const command: Command = {
                 .setDescription(text)
                 .setImage(`attachment://${path.basename(card.image)}`)
                 .setThumbnail(`attachment://${cardRangeImageName}`);
-            await i.reply({
+            await i.editReply({
                 embeds: [embed],
                 files: [cardImage, cardRangeImage],
             });
         });
 
+        collector?.on('end', (collected) => {
+            if (collected.size === 0) {
+                interaction.deleteReply();
+            }
+        });
+
         await interaction.reply({
             content: 'Search results',
             components: rows,
-            ephemeral: true,
+            ephemeral: false,
         });
     },
 };

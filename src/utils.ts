@@ -42,13 +42,14 @@ setInterval(() => {
 
 export const onCommandInteraction = (interaction: CommandInteraction) => {
     console.log(
-        `${interaction.createdTimestamp} - Command ${
+        `${interaction.createdAt} - Command ${
             interaction.commandName
         } used in channel "${
             interaction.guild?.channels.cache.get(interaction.channelId)?.name
         }" (${interaction.channelId}) by user ${
             interaction.user.username
-        } with arguments ${interaction.options}`
+        } with arguments`,
+        interaction.options
     );
     if (
         interaction.guild &&

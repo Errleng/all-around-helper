@@ -126,9 +126,18 @@ const command: Command = {
             rows.push(currentRow);
         }
 
+        await interaction.reply({
+            content: 'Search results',
+            components: rows,
+            ephemeral: false,
+        });
+
+        const interactionMessage = await interaction.fetchReply();
+
         const collector = interaction.channel?.createMessageComponentCollector({
             filter: (i: ButtonInteraction) => i.user.id === interaction.user.id,
             componentType: 'BUTTON',
+            message: interactionMessage,
             max: 1,
             maxUsers: 1,
             time: 60000,
@@ -205,12 +214,6 @@ const command: Command = {
             if (collected.size === 0) {
                 interaction.deleteReply();
             }
-        });
-
-        await interaction.reply({
-            content: 'Search results',
-            components: rows,
-            ephemeral: false,
         });
     },
 };

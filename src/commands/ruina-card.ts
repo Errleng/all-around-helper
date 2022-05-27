@@ -9,7 +9,7 @@ import {
     MessageEmbed,
 } from 'discord.js';
 import { Card, Command, DiceCategory, DiceType } from '../types';
-import { getSyntaxForColor, onCommandInteraction } from '../utils';
+import { getSyntaxForColor, onCommandInteraction, cardImageToPath } from '../utils';
 import { getCardsFromDatabase } from '../database';
 import {
     ASSETS_PATH,
@@ -168,7 +168,8 @@ const command: Command = {
             });
             console.log('the interaction is', i);
 
-            const cardImage = new MessageAttachment(card.image);
+            const cardImage = new MessageAttachment(cardImageToPath(card.image));
+	    console.log('card path', cardImageToPath(card.image), cardImage);
             const cardRangeImageName = CARD_RANGE_IMAGE_MAP[card.range];
             const cardRangeImage = new MessageAttachment(
                 `${ASSETS_PATH}/images/${cardRangeImageName}`
@@ -202,7 +203,7 @@ const command: Command = {
                 .setColor(CARD_RARITY_COLOR_MAP[card.rarity] as ColorResolvable)
                 .setTitle(`${card.name}\t${card.cost}:bulb:`)
                 .setDescription(text)
-                .setImage(`attachment://${path.basename(card.image)}`)
+                .setImage(`attachment://${path.basename(cardImageToPath(card.image))}`)
                 .setThumbnail(`attachment://${cardRangeImageName}`);
             await i.editReply({
                 embeds: [embed],

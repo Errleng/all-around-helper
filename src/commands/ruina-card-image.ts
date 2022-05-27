@@ -17,7 +17,7 @@ import {
     MAX_BUTTONS_PER_ROW,
 } from '../constants';
 import { Card, Command, DiceCategory, DiceType } from '../types';
-import { getCanvasLines, getTextHeight, onCommandInteraction } from '../utils';
+import { getCanvasLines, getTextHeight, onCommandInteraction, cardImageToPath } from '../utils';
 
 const drawCardDice: (
     canvas: Canvas.Canvas,
@@ -252,7 +252,7 @@ const command: Command = {
                 components: [],
             });
 
-            const cardArt = new MessageAttachment(card.image, 'card-art.png');
+            const cardArt = new MessageAttachment(cardImageToPath(card.image), 'card-art.png');
             // resize card dice image
             const canvas = Canvas.createCanvas(410, 310);
             const finalCanvas = await drawCardDice(canvas, card);

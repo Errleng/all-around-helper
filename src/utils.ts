@@ -422,12 +422,17 @@ export const getCardsFromXml = (xml: string) => {
         return '';
     };
 
+    const doesImageExist = (artworkId: string) => {
+	const imagePath = getImagePath(artworkId);
+	return imagePath !== null;
+    }
+
     const getImagePath = (artworkId: string) => {
         if (!artworkId) {
             console.warn('invalid artwork id:', artworkId);
             return null;
         }
-        const imageDir = `${env.EXTRACTED_ASSETS_DIR}/RawImages`;
+        const imageDir = `${env.EXTRACTED_ASSETS_DIR}/raw-images`;
         const imagePath = findFileRecur(artworkId, imageDir);
         if (imagePath === null) {
             // some cards just have no image
@@ -472,8 +477,8 @@ export const getCardsFromXml = (xml: string) => {
         const spec = jsCard['Spec'];
         const cardScript = jsCard['Script'];
         const cardName = getCardName(cardId) ?? jsCard['Name'];
-        const cardImage = getImagePath(jsCard['Artwork']);
-        if (cardImage === null) {
+        const cardImage = jsCard['Artwork'];
+        if (!doesImageExist(cardImage)) {
             // probably a card that is cut from the game
             console.log(
                 `skipping card ${cardName} (${cardId}) because it has no image`
@@ -530,3 +535,7 @@ export const getCanvasLines = (
     lines.push(currentLine);
     return lines;
 };
+
+export const cardImageToPath = (artName: string) => {
+    return `${env.EXTRACTED_ASSETS_DIR}/raw-images/card-artwork/${artName}.png`;
+}

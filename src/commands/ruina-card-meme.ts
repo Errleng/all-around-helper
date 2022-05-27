@@ -7,10 +7,10 @@ import {
     MessageButton,
 } from 'discord.js';
 import { Card, Command } from '../types';
-import { getCanvasLines, onCommandInteraction } from '../utils';
+import { getCanvasLines, onCommandInteraction, cardImageToPath } from '../utils';
 import * as Canvas from 'canvas';
 import { getCardsFromDatabase } from '../database';
-import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
+import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW, env } from '../constants';
 
 const command: Command = {
     permissions: [],
@@ -160,7 +160,7 @@ const command: Command = {
             // card art is usually 410x310
             const canvas = Canvas.createCanvas(410, 310);
             const context = canvas.getContext('2d');
-            const cardImage = await Canvas.loadImage(card.image);
+            const cardImage = await Canvas.loadImage(cardImageToPath(card.image));
             context.drawImage(cardImage, 0, 0, canvas.width, canvas.height);
 
             const topText = interaction.options.getString('toptext') ?? '';

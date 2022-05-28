@@ -49,17 +49,9 @@ const registerCommands = async () => {
                 console.warn(`Could not find command ${command.name}`);
                 return;
             }
-            if (!commandData.permissions) {
-                return;
-            }
-            const newPermissions = await command.permissions.set({
-                guild: guild.id,
-                permissions: commandData.permissions,
-            });
             console.log(
                 `Updated permissions for command "${command.name}" in guild "${guild.name}"`,
                 command.defaultPermission,
-                newPermissions
             );
         });
     });

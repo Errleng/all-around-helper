@@ -13,6 +13,8 @@ import {
     Dice,
     DiceCategory,
     DiceType,
+    Dialogue,
+    DialogueCategory,
 } from './types';
 import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
@@ -316,11 +318,11 @@ export const getCardsFromXml = (xml: string) => {
 
     const getCardName = (cardId: string) => {
         const cardNamesFiles = fs
-            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/Text/EN`)
+            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`)
             .filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
         for (const cardNameFile of cardNamesFiles) {
             const cardNamesXml = fs.readFileSync(
-                `${env.EXTRACTED_ASSETS_DIR}/Text/EN/${cardNameFile}`,
+                `${env.EXTRACTED_ASSETS_DIR}/text/EN/${cardNameFile}`,
                 'utf-8'
             );
             const cardNamesJs = xmlParser.parse(cardNamesXml);
@@ -352,11 +354,11 @@ export const getCardsFromXml = (xml: string) => {
         diceIndex?: number
     ) => {
         const abilityFiles = fs
-            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/Text/EN`)
+            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`)
             .filter((name) => /EN_BattleCardAbilities.*/.test(name));
         for (const abilityFile of abilityFiles) {
             const abilitiesXml = fs.readFileSync(
-                `${env.EXTRACTED_ASSETS_DIR}/Text/EN/${abilityFile}`,
+                `${env.EXTRACTED_ASSETS_DIR}/text/EN/${abilityFile}`,
                 'utf-8'
             );
             const abilitiesJs = xmlParser.parse(abilitiesXml);
@@ -381,11 +383,11 @@ export const getCardsFromXml = (xml: string) => {
         }
 
         const cardFiles = fs
-            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/Text/EN`)
+            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`)
             .filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
         for (const cardFile of cardFiles) {
             const cardXml = fs.readFileSync(
-                `${env.EXTRACTED_ASSETS_DIR}/Text/EN/${cardFile}`,
+                `${env.EXTRACTED_ASSETS_DIR}/text/EN/${cardFile}`,
                 'utf-8'
             );
             const cardJs = xmlParser.parse(cardXml);
@@ -423,9 +425,9 @@ export const getCardsFromXml = (xml: string) => {
     };
 
     const doesImageExist = (artworkId: string) => {
-	const imagePath = getImagePath(artworkId);
-	return imagePath !== null;
-    }
+        const imagePath = getImagePath(artworkId);
+        return imagePath !== null;
+    };
 
     const getImagePath = (artworkId: string) => {
         if (!artworkId) {
@@ -502,6 +504,94 @@ export const getCardsFromXml = (xml: string) => {
     return cards;
 };
 
+export const getDialoguesFromCombatXml = (xml: string) => {
+    const ALWAYS_ARRAY_TAGS = [, 'Character', 'Type', 'BattleDialog', 'text'];
+    const xmlParser = new XMLParser({
+        ignoreAttributes: false,
+        isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
+    });
+    const jsObj = xmlParser.parse(xml);
+
+    const dialogues: Dialogue[] = [];
+    try {
+        if ('BattleDialogRoot' in jsObj) {
+            // reception
+            const characters = jsObj['BattleDialogRoot']['Character'];
+            const groupName = jsObj['BattleDialogRoot']['GroupName'];
+            for (const character of characters) {
+                const types = character['Type'];
+                for (const type of types) {
+                    const battleDialogues = type['BattleDialog'];
+                    if (battleDialogues === undefined) {
+                        console.warn('Battle dialogues not found for', jsObj);
+                        continue;
+                    }
+                    for (const battleDialogue of battleDialogues) {
+                        const dialogue: Dialogue = {
+                            category: DialogueCategory.Combat,
+                            speaker: `${groupName} - ${character['@_ID']} - ${battleDialogue['@_ID']}`,
+                            text: battleDialogue['#text'],
+                        };
+                        dialogues.push(dialogue);
+                    }
+                }
+            }
+        } else {
+            // abnormality
+            const texts = jsObj['localize']['text'];
+            for (const speech of texts) {
+                const dialogue: Dialogue = {
+                    category: DialogueCategory.Combat,
+                    speaker: speech['@_id'],
+                    text: speech['#text'],
+                };
+                dialogues.push(dialogue);
+            }
+        }
+    } catch (error) {
+        console.error('error converting XML to combat dialogue:', error);
+        console.log('combat dialogue xml', inspect(jsObj, { depth: null }));
+        throw error;
+    }
+    return dialogues;
+};
+
+export const getDialoguesFromStoryXml = (xml: string) => {
+    const ALWAYS_ARRAY_TAGS = ['Group', 'Episode', 'Place', 'Dialog'];
+    const xmlParser = new XMLParser({
+        ignoreAttributes: false,
+        isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
+    });
+    const jsObj = xmlParser.parse(xml);
+
+    const dialogues: Dialogue[] = [];
+    try {
+        const groups = jsObj['ScenarioRoot']['Group'];
+        for (const group of groups) {
+            const episodes = group['Episode'];
+            for (const episode of episodes) {
+                const places = episode['Place'];
+                for (const place of places) {
+                    const dialogs = place['Dialog'];
+                    for (const dialog of dialogs) {
+                        const dialogue: Dialogue = {
+                            category: DialogueCategory.Story,
+                            speaker: `${dialog['Teller']} (${dialog['Title']})`,
+                            text: dialog['Content'],
+                        };
+                        dialogues.push(dialogue);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('error converting XML to story dialogue:', error);
+        console.warn('story dialogue xml', inspect(jsObj, { depth: null }));
+        throw error;
+    }
+    return dialogues;
+};
+
 export const getTextHeight = (
     context: CanvasRenderingContext2D,
     text: string
@@ -538,4 +628,4 @@ export const getCanvasLines = (
 
 export const cardImageToPath = (artName: string) => {
     return `${env.EXTRACTED_ASSETS_DIR}/raw-images/card-artwork/${artName}.png`;
-}
+};

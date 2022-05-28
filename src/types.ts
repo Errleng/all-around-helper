@@ -7,7 +7,6 @@ import {
 } from 'discord.js';
 
 export interface Command {
-    permissions: ApplicationCommandPermissionData[];
     data: Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
     execute: (interaction: CommandInteraction) => Promise<void>;
 }
@@ -37,6 +36,12 @@ export interface Dice {
     description: string;
 }
 
+export interface Dialogue {
+    category: DialogueCategory;
+    speaker: string;
+    text: string;
+}
+
 export enum DiceCategory {
     Atk,
     Def,
@@ -64,4 +69,9 @@ export enum CardRarity {
     Uncommon,
     Rare,
     Unique,
+}
+
+export enum DialogueCategory {
+    Story,
+    Combat,
 }

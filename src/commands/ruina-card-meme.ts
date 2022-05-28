@@ -13,7 +13,6 @@ import { getCardsFromDatabase } from '../database';
 import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW, env } from '../constants';
 
 const command: Command = {
-    permissions: [],
     data: new SlashCommandBuilder()
         .setName('ruina-card-meme')
         .setDescription(

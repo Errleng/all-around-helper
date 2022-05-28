@@ -24,22 +24,7 @@ import {
 } from '../constants';
 import path from 'path';
 
-let useCount = 0;
-setInterval(() => {
-    if (useCount > 0) {
-        console.log(`ruina-card reset useCount from ${useCount} to zero`);
-    }
-    useCount = 0;
-}, 1000 * 60);
-
 const command: Command = {
-    permissions: [
-        {
-            id: env.DEV_USER,
-            type: 'USER',
-            permission: true,
-        },
-    ],
     data: new SlashCommandBuilder()
         .setName('ruina-card')
         .setDescription('Replies with the Library of Ruina card')

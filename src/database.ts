@@ -8,51 +8,68 @@ import {
     Dice,
     DiceCategory,
     DiceType,
+    Dialogue,
+    DialogueCategory,
 } from './types';
-import { getCardsFromXml } from './utils';
+import {
+    getCardsFromXml,
+    getDialoguesFromCombatXml,
+    getDialoguesFromStoryXml,
+} from './utils';
 
 export const resetDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
 
     // delete everything
     await dbClient.connect();
-    await dbClient.query('DROP TABLE IF EXISTS dice');
-    await dbClient.query('DROP TABLE IF EXISTS cards');
-    await dbClient.query('DROP TYPE IF EXISTS card_rarity');
-    await dbClient.query('DROP TYPE IF EXISTS card_range');
-    await dbClient.query('DROP TYPE IF EXISTS dice_type');
-    await dbClient.query('DROP TYPE IF EXISTS dice_category');
+    // await dbClient.query('DROP TABLE IF EXISTS dice');
+    // await dbClient.query('DROP TABLE IF EXISTS cards');
+    await dbClient.query('DROP TABLE IF EXISTS dialogues');
+    // await dbClient.query('DROP TYPE IF EXISTS card_rarity');
+    // await dbClient.query('DROP TYPE IF EXISTS card_range');
+    // await dbClient.query('DROP TYPE IF EXISTS dice_type');
+    // await dbClient.query('DROP TYPE IF EXISTS dice_category');
+    // await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
 
-    // create everything
-    await dbClient.query(
-        "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
-    );
-    await dbClient.query(
-        "CREATE TYPE card_range AS ENUM ('Near', 'Far', 'FarArea', 'FarAreaEach', 'Instance')"
-    );
-    await dbClient.query(
-        "CREATE TYPE dice_type AS ENUM ('Slash', 'Penetrate', 'Hit', 'Guard', 'Evasion')"
-    );
-    await dbClient.query(
-        "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
-    );
-    await dbClient.query(`CREATE TABLE cards (
-        id              int primary key,
-        name            text,
-        description     text,
-        cost            int,
-        rarity          card_rarity,
-        range           card_range,
-        image           text
-    )`);
-    await dbClient.query(`CREATE TABLE dice (
-        card_id         int references cards(id),
-        category        dice_category,
-        type            dice_type,
-        min_roll        int,
-        max_roll        int,
-        description     text,
-        index           int
+    // // create everything
+    // await dbClient.query(
+    //     "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE card_range AS ENUM ('Near', 'Far', 'FarArea', 'FarAreaEach', 'Instance')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE dice_type AS ENUM ('Slash', 'Penetrate', 'Hit', 'Guard', 'Evasion')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
+    // );
+    // await dbClient.query(`CREATE TABLE cards (
+    //     id              int primary key,
+    //     name            text,
+    //     description     text,
+    //     cost            int,
+    //     rarity          card_rarity,
+    //     range           card_range,
+    //     image           text
+    // )`);
+    // await dbClient.query(`CREATE TABLE dice (
+    //     card_id         int references cards(id),
+    //     category        dice_category,
+    //     type            dice_type,
+    //     min_roll        int,
+    //     max_roll        int,
+    //     description     text,
+    //     index           int
+    // )`);
+    await dbClient.query(`CREATE TABLE dialogues (
+        id              int generated always as identity,
+        category        dialogue_category,
+        speaker         text,
+        text            text
     )`);
     await dbClient.end();
     await populateDatabase();
@@ -61,11 +78,45 @@ export const resetDatabase = async () => {
 const populateDatabase = async () => {
     // read everything from Library of Ruina XML
     const basePath = env.EXTRACTED_ASSETS_DIR;
-    const textFilesPath = `${basePath}/Text`;
+    const textFilesPath = `${basePath}/text`;
+    const englishFilesPath = `${textFilesPath}/EN`;
+
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+
+    const combatDialogueFiles = fs
+        .readdirSync(englishFilesPath)
+        .filter((name) => /CombatDialog_.*/.test(name));
+    console.log('combat dialogue files:', combatDialogueFiles);
+    for (const fileName of combatDialogueFiles) {
+        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+        const xmlDialogues = getDialoguesFromCombatXml(xml);
+        console.log(
+            `inserting ${xmlDialogues.length} combat dialogues from ${fileName}`
+        );
+        for (const dialogue of xmlDialogues) {
+            await insertDialogueIntoDatabase(dbClient, dialogue);
+        }
+    }
+
+    const storyDialogueFiles = fs
+        .readdirSync(englishFilesPath)
+        .filter((name) => /Chapter.*/.test(name));
+    console.log('story dialogue files:', storyDialogueFiles);
+    for (const fileName of storyDialogueFiles) {
+        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+        const xmlDialogues = getDialoguesFromStoryXml(xml);
+        console.log(
+            `inserting ${xmlDialogues.length} story dialogues from ${fileName}`
+        );
+        for (const dialogue of xmlDialogues) {
+            await insertDialogueIntoDatabase(dbClient, dialogue);
+        }
+    }
+
     const cardInfoFiles = fs
         .readdirSync(textFilesPath)
         .filter((name) => /CardInfo_.*/.test(name));
-
     console.log('card info files:', cardInfoFiles);
 
     const cards: Card[] = [];
@@ -101,8 +152,10 @@ const populateDatabase = async () => {
         }
         card.name = filteredName;
 
-        await insertCardIntoDatabase(card);
+        await insertCardIntoDatabase(dbClient, card);
     }
+
+    await dbClient.end();
     console.log(JSON.stringify(Object.fromEntries(unicodes)));
 };
 
@@ -150,9 +203,28 @@ export const getCardsFromDatabase = async (cardName: string) => {
     return matches;
 };
 
-const insertCardIntoDatabase = async (card: Card) => {
+export const getDialoguesFromDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
+    const dialogues = await dbClient.query('SELECT * FROM dialogues');
+
+    const result: Dialogue[] = [];
+    for (const dialogueRow of dialogues.rows) {
+        const dialogue: Dialogue = {
+            category:
+                DialogueCategory[
+                    dialogueRow.category as keyof typeof DialogueCategory
+                ],
+            speaker: dialogueRow.speaker,
+            text: dialogueRow.text,
+        };
+        result.push(dialogue);
+    }
+    await dbClient.end();
+    return result;
+};
+
+const insertCardIntoDatabase = async (dbClient: Client, card: Card) => {
     await dbClient.query(
         'INSERT INTO cards VALUES($1, $2, $3, $4, $5, $6, $7)',
         [
@@ -179,5 +251,14 @@ const insertCardIntoDatabase = async (card: Card) => {
             ]
         );
     }
-    await dbClient.end();
+};
+
+const insertDialogueIntoDatabase = async (
+    dbClient: Client,
+    dialogue: Dialogue
+) => {
+    await dbClient.query(
+        'INSERT INTO dialogues(category, speaker, text) VALUES($1, $2, $3)',
+        [DialogueCategory[dialogue.category], dialogue.speaker, dialogue.text]
+    );
 };

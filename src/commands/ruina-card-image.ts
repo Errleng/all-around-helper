@@ -119,13 +119,6 @@ const drawCardDice: (
 };
 
 const command: Command = {
-    permissions: [
-        // {
-        //     id: env.DEV_USER,
-        //     type: 'USER',
-        //     permission: true,
-        // },
-    ],
     data: new SlashCommandBuilder()
         .setName('ruina-card-image')
         .setDescription('Generates an image of a Library of Ruina card')

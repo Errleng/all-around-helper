@@ -1,15 +1,24 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction } from 'discord.js';
-import { env } from '../constants';
 import { onCommandInteraction } from '../utils';
-import { Command } from '../types';
+import { Command, DialogueCategory } from '../types';
 import { getDialoguesFromDatabase } from '../database';
 
 const command: Command = {
     data: new SlashCommandBuilder()
         .setName('ruina-quote')
         .setDescription('Replies with a random Library of Ruina quote')
-        .setDefaultPermission(true),
+        .setDefaultPermission(true)
+        .addStringOption((option) =>
+            option
+                .setName('category')
+                .setDescription('Dialogue category')
+                .setRequired(false)
+                .addChoices([
+                    ['Story', DialogueCategory[DialogueCategory.Story]],
+                    ['Combat', DialogueCategory[DialogueCategory.Combat]],
+                ])
+        ),
     async execute(interaction: CommandInteraction) {
         try {
             onCommandInteraction(interaction);
@@ -29,7 +38,7 @@ const command: Command = {
             return;
         }
 
-        const dialogues = await getDialoguesFromDatabase();
+        let dialogues = await getDialoguesFromDatabase();
         if (dialogues.length === 0) {
             await interaction.reply({
                 content: 'Could not find any quotes',
@@ -38,6 +47,17 @@ const command: Command = {
             return;
         }
         console.log(dialogues, dialogues.length);
+
+        const selectedCategory = interaction.options.getString('category');
+        if (selectedCategory !== null) {
+            const filterCategory =
+                DialogueCategory[
+                    selectedCategory as keyof typeof DialogueCategory
+                ];
+            dialogues = dialogues.filter(
+                (dialogue) => dialogue.category === filterCategory
+            );
+        }
 
         const randomDialogue =
             dialogues[Math.floor(Math.random() * dialogues.length)];

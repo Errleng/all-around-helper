@@ -24,50 +24,50 @@ export const resetDatabase = async () => {
 
     // delete everything
     await dbClient.connect();
-    await dbClient.query('DROP TABLE IF EXISTS dice');
-    await dbClient.query('DROP TABLE IF EXISTS cards');
+    // await dbClient.query('DROP TABLE IF EXISTS dice');
+    // await dbClient.query('DROP TABLE IF EXISTS cards');
     await dbClient.query('DROP TABLE IF EXISTS dialogues');
     await dbClient.query('DROP TABLE IF EXISTS books');
-    await dbClient.query('DROP TYPE IF EXISTS card_rarity');
-    await dbClient.query('DROP TYPE IF EXISTS card_range');
-    await dbClient.query('DROP TYPE IF EXISTS dice_type');
-    await dbClient.query('DROP TYPE IF EXISTS dice_category');
+    // await dbClient.query('DROP TYPE IF EXISTS card_rarity');
+    // await dbClient.query('DROP TYPE IF EXISTS card_range');
+    // await dbClient.query('DROP TYPE IF EXISTS dice_type');
+    // await dbClient.query('DROP TYPE IF EXISTS dice_category');
     await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
 
     // create everything
-    await dbClient.query(
-        "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
-    );
-    await dbClient.query(
-        "CREATE TYPE card_range AS ENUM ('Near', 'Far', 'FarArea', 'FarAreaEach', 'Instance')"
-    );
-    await dbClient.query(
-        "CREATE TYPE dice_type AS ENUM ('Slash', 'Penetrate', 'Hit', 'Guard', 'Evasion')"
-    );
-    await dbClient.query(
-        "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
-    );
+    // await dbClient.query(
+    //     "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE card_range AS ENUM ('Near', 'Far', 'FarArea', 'FarAreaEach', 'Instance')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE dice_type AS ENUM ('Slash', 'Penetrate', 'Hit', 'Guard', 'Evasion')"
+    // );
+    // await dbClient.query(
+    //     "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
+    // );
     await dbClient.query(
         "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
     );
-    await dbClient.query(`CREATE TABLE cards (
-        id              int primary key,
-        name            text,
-        description     text,
-        cost            int,
-        rarity          card_rarity,
-        range           card_range,
-        image           text
-    )`);
-    await dbClient.query(`CREATE TABLE dice (
-        card_id         int references cards(id),
-        category        dice_category,
-        type            dice_type,
-        min_roll        int,
-        max_roll        int,
-        description     text,
-        index           int
-    )`);
+    // await dbClient.query(`CREATE TABLE cards (
+    //     id              int primary key,
+    //     name            text,
+    //     description     text,
+    //     cost            int,
+    //     rarity          card_rarity,
+    //     range           card_range,
+    //     image           text
+    // )`);
+    // await dbClient.query(`CREATE TABLE dice (
+    //     card_id         int references cards(id),
+    //     category        dice_category,
+    //     type            dice_type,
+    //     min_roll        int,
+    //     max_roll        int,
+    //     description     text,
+    //     index           int
+    // )`);
     await dbClient.query(`CREATE TABLE dialogues (
         id              int generated always as identity,
         category        dialogue_category,
@@ -138,49 +138,49 @@ const populateDatabase = async () => {
     }
 
     // insert cards
-    const cardInfoFiles = fs
-        .readdirSync(textFilesPath)
-        .filter((name) => /CardInfo_.*/.test(name));
-    console.log('card info files:', cardInfoFiles);
+    // const cardInfoFiles = fs
+    //     .readdirSync(textFilesPath)
+    //     .filter((name) => /CardInfo_.*/.test(name));
+    // console.log('card info files:', cardInfoFiles);
 
-    const cards: Card[] = [];
-    for (const fileName of cardInfoFiles) {
-        const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
-        const xmlCards = getCardsFromXml(xml);
-        xmlCards.forEach((card) => cards.push(card));
-    }
+    // const cards: Card[] = [];
+    // for (const fileName of cardInfoFiles) {
+    //     const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
+    //     const xmlCards = getCardsFromXml(xml);
+    //     xmlCards.forEach((card) => cards.push(card));
+    // }
 
-    const uniqueCards: Card[] = [];
-    for (const card of cards) {
-        if (uniqueCards.some((existing) => existing.id === card.id)) {
-            console.warn(
-                `found card that already exists: ${card.name} (${card.id})`
-            );
-            continue;
-        }
-        uniqueCards.push(card);
-    }
+    // const uniqueCards: Card[] = [];
+    // for (const card of cards) {
+    //     if (uniqueCards.some((existing) => existing.id === card.id)) {
+    //         console.warn(
+    //             `found card that already exists: ${card.name} (${card.id})`
+    //         );
+    //         continue;
+    //     }
+    //     uniqueCards.push(card);
+    // }
 
-    const unicodes = new Map();
+    // const unicodes = new Map();
 
-    for (const card of uniqueCards) {
-        // replace Unicode characters with closest equivalents
-        let filteredName = '';
-        for (let i = 0; i < card.name.length; i++) {
-            const charCode = card.name.charCodeAt(i);
-            if (charCode in UNICODE_ASCII_MAP) {
-                filteredName += UNICODE_ASCII_MAP[charCode];
-            } else {
-                filteredName += card.name.charAt(i);
-            }
-        }
-        card.name = filteredName;
+    // for (const card of uniqueCards) {
+    //     // replace Unicode characters with closest equivalents
+    //     let filteredName = '';
+    //     for (let i = 0; i < card.name.length; i++) {
+    //         const charCode = card.name.charCodeAt(i);
+    //         if (charCode in UNICODE_ASCII_MAP) {
+    //             filteredName += UNICODE_ASCII_MAP[charCode];
+    //         } else {
+    //             filteredName += card.name.charAt(i);
+    //         }
+    //     }
+    //     card.name = filteredName;
 
-        await insertCardIntoDatabase(dbClient, card);
-    }
+    //     await insertCardIntoDatabase(dbClient, card);
+    // }
 
     await dbClient.end();
-    console.log(JSON.stringify(Object.fromEntries(unicodes)));
+    // console.log(JSON.stringify(Object.fromEntries(unicodes)));
 };
 
 export const getCardsFromDatabase = async (cardName: string) => {
@@ -266,6 +266,7 @@ export const getBooksFromDatabase = async (bookName?: string) => {
 
     const result: Book[] = [];
     for (const bookRow of books.rows) {
+        console.log('book row:', bookRow);
         const book: Book = {
             id: bookRow.id,
             name: bookRow.name,

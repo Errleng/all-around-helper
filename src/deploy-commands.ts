@@ -51,7 +51,7 @@ const registerCommands = async () => {
             }
             console.log(
                 `Updated permissions for command "${command.name}" in guild "${guild.name}"`,
-                command.defaultPermission,
+                command.defaultPermission
             );
         });
     });
@@ -69,5 +69,7 @@ const unregisterCommands = async () => {
 };
 
 client.on('ready', async () => {
-    registerCommands();
+    registerCommands().then(() => {
+        process.exit();
+    });
 });

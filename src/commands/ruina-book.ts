@@ -1,14 +1,69 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import {
+    ColorResolvable,
     CommandInteraction,
     ButtonInteraction,
     MessageActionRow,
     MessageButton,
+    MessageEmbed,
 } from 'discord.js';
 import { onCommandInteraction } from '../utils';
 import { Book, Command } from '../types';
 import { getBooksFromDatabase } from '../database';
 import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
+
+const sendBookEmbeds = async (
+    book: Book,
+    int: CommandInteraction | ButtonInteraction
+) => {
+    const MAX_EMBED_LENGTH = 4096 - 100;
+    const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+    const embeds = [];
+
+    let currentText = '';
+    for (let i = 0; i < book.descs.length; ++i) {
+        const desc = book.descs[i];
+        currentText += desc + '\n\n';
+        if (
+            i === book.descs.length - 1 ||
+            currentText.length + book.descs[i + 1].length > MAX_EMBED_LENGTH
+        ) {
+            currentText = currentText.replace(/\n+$/, '');
+            console.log(
+                'current text length',
+                currentText.length,
+                book.descs[i + 1]?.length
+            );
+
+            const embed = new MessageEmbed()
+                .setColor(randomColor as ColorResolvable)
+                .setTitle(`${book.name} (${book.id})`)
+                .setDescription(currentText);
+            embeds.push(embed);
+            currentText = '';
+        }
+    }
+
+    let firstReply = true;
+    for (const embed of embeds) {
+        if (firstReply) {
+            firstReply = false;
+            if (int.deferred || int.replied) {
+                await int.editReply({
+                    embeds: [embed],
+                });
+            } else {
+                await int.reply({
+                    embeds: [embed],
+                });
+            }
+        } else {
+            await int.followUp({
+                embeds: [embed],
+            });
+        }
+    }
+};
 
 const command: Command = {
     data: new SlashCommandBuilder()
@@ -54,11 +109,7 @@ const command: Command = {
             }
 
             const randomBook = books[Math.floor(Math.random() * books.length)];
-            await interaction.reply({
-                content: `**${randomBook.name} (${
-                    randomBook.id
-                })**\n${randomBook.descs.join('\n')}`,
-            });
+            await sendBookEmbeds(randomBook, interaction);
         } else {
             let books: Book[] | null = null;
             try {
@@ -129,8 +180,8 @@ const command: Command = {
                     time: 60000,
                 });
 
-            collector?.on('collect', async (i: ButtonInteraction) => {
-                await i.deferReply();
+            collector?.on('collect', async (int: ButtonInteraction) => {
+                await int.deferReply();
 
                 if (!books) {
                     console.error(
@@ -139,7 +190,7 @@ const command: Command = {
                     return;
                 }
 
-                const bookId = Number(i.customId);
+                const bookId = Number(int.customId);
                 const book = books.find((c) => c.id === bookId);
                 if (!book) {
                     console.error(
@@ -152,13 +203,8 @@ const command: Command = {
                     content: `Displaying ${book.name} (${book.id})`,
                     components: [],
                 });
-                console.log('the interaction is', i);
-
-                await i.editReply({
-                    content: `**${book.name} (${book.id})**\n${book.descs.join(
-                        '\n'
-                    )}`,
-                });
+                console.log('the interaction is', int);
+                await sendBookEmbeds(book, int);
             });
 
             collector?.on('end', (collected) => {

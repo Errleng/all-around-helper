@@ -1,3 +1,6 @@
 import { resetDatabase } from './database';
 
-resetDatabase();
+resetDatabase().then(() => {
+    console.log('Database setup complete');
+    process.exit();
+});

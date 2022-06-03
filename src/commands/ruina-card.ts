@@ -154,7 +154,7 @@ const command: Command = {
             console.log('the interaction is', i);
 
             const cardImage = new MessageAttachment(cardImageToPath(card.image));
-	    console.log('card path', cardImageToPath(card.image), cardImage);
+            console.log('card path', cardImageToPath(card.image), cardImage);
             const cardRangeImageName = CARD_RANGE_IMAGE_MAP[card.range];
             const cardRangeImage = new MessageAttachment(
                 `${ASSETS_PATH}/images/${cardRangeImageName}`

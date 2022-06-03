@@ -7,6 +7,7 @@ import {
 import fs from 'fs';
 import path from 'path';
 import {
+    Book,
     Card,
     CardRange,
     CardRarity,
@@ -505,7 +506,7 @@ export const getCardsFromXml = (xml: string) => {
 };
 
 export const getDialoguesFromCombatXml = (xml: string) => {
-    const ALWAYS_ARRAY_TAGS = [, 'Character', 'Type', 'BattleDialog', 'text'];
+    const ALWAYS_ARRAY_TAGS = ['Character', 'Type', 'BattleDialog', 'text'];
     const xmlParser = new XMLParser({
         ignoreAttributes: false,
         isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
@@ -590,6 +591,44 @@ export const getDialoguesFromStoryXml = (xml: string) => {
         throw error;
     }
     return dialogues;
+};
+
+export const getBooksFromXml = (xml: string) => {
+    const ALWAYS_ARRAY_TAGS = ['BookDesc', 'Desc'];
+    const xmlParser = new XMLParser({
+        ignoreAttributes: false,
+        isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
+    });
+    const jsObj = xmlParser.parse(xml);
+
+    const books: Book[] = [];
+    try {
+        const bookDescList = jsObj['BookDescRoot']['bookDescList']['BookDesc'];
+        for (const bookDesc of bookDescList) {
+            if (!bookDesc?.TextList?.Desc) {
+                continue;
+            }
+
+            const id = bookDesc['@_BookID'];
+            const name = bookDesc['BookName'];
+            const textList = bookDesc['TextList']['Desc'];
+            const descs: string[] = [];
+            for (const text of textList) {
+                descs.push(text);
+            }
+            const book: Book = {
+                id,
+                name,
+                descs,
+            };
+            books.push(book);
+        }
+    } catch (error) {
+        console.error('error converting XML to book:', error);
+        // console.warn('book xml', inspect(jsObj, { depth: null }));
+        throw error;
+    }
+    return books;
 };
 
 export const getTextHeight = (

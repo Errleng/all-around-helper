@@ -1,6 +1,5 @@
 import { Client, Collection, Intents } from 'discord.js';
 import { COMMANDS_PATH, env, EVENTS_PATH } from './constants';
-import { resetDatabase } from './database';
 import { ClientEvent, Command } from './types';
 import { importDefaults } from './utils';
 
@@ -32,6 +31,4 @@ const setupEvents = async () => {
 setupCommands();
 setupEvents();
 // Login to Discord with your client's token
-// resetDatabase();
-
 client.login(token);

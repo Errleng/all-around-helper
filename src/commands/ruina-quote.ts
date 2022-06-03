@@ -46,7 +46,6 @@ const command: Command = {
             });
             return;
         }
-        console.log(dialogues, dialogues.length);
 
         const selectedCategory = interaction.options.getString('category');
         if (selectedCategory !== null) {

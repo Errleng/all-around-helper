@@ -1,6 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import {
-    ApplicationCommandPermissionData,
     CacheType,
     CommandInteraction,
     Interaction,
@@ -40,6 +39,12 @@ export interface Dialogue {
     category: DialogueCategory;
     speaker: string;
     text: string;
+}
+
+export interface Book {
+    id: number;
+    name: string;
+    descs: string[];
 }
 
 export enum DiceCategory {

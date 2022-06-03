@@ -8,6 +8,7 @@
         "build": "tsc",
         "start": "npm run build && node dist/index.js",
         "deploy-commands": "npm run build && node dist/deploy-commands.js",
+        "populate-database": "npm run build && node dist/populate-database.js",
         "watch": "tsc -p tsconfig.json -w"
     },
     "repository": {

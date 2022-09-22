@@ -1,9 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import {
-    CacheType,
-    CommandInteraction,
-    Interaction,
-} from 'discord.js';
+import { CacheType, CommandInteraction, Interaction } from 'discord.js';
 
 export interface Command {
     data: Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
@@ -47,6 +43,11 @@ export interface Book {
     descs: string[];
 }
 
+export interface Sound {
+    category: SoundCategory;
+    fileName: string;
+}
+
 export enum DiceCategory {
     Atk,
     Def,
@@ -79,4 +80,10 @@ export enum CardRarity {
 export enum DialogueCategory {
     Story,
     Combat,
+}
+
+export enum SoundCategory {
+    SoundEffect,
+    Music,
+    Dialogue,
 }

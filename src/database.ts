@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { Client } from 'pg';
+
 import { env, POSTGRES_CONNECTION, UNICODE_ASCII_MAP } from './constants';
 import {
     Book,
@@ -11,6 +12,8 @@ import {
     DiceType,
     Dialogue,
     DialogueCategory,
+    Sound,
+    SoundCategory,
 } from './types';
 import {
     getCardsFromXml,
@@ -26,13 +29,15 @@ export const resetDatabase = async () => {
     await dbClient.connect();
     // await dbClient.query('DROP TABLE IF EXISTS dice');
     // await dbClient.query('DROP TABLE IF EXISTS cards');
-    await dbClient.query('DROP TABLE IF EXISTS dialogues');
-    await dbClient.query('DROP TABLE IF EXISTS books');
+    // await dbClient.query('DROP TABLE IF EXISTS dialogues');
+    // await dbClient.query('DROP TABLE IF EXISTS books');
+    await dbClient.query('DROP TABLE IF EXISTS sounds');
     // await dbClient.query('DROP TYPE IF EXISTS card_rarity');
     // await dbClient.query('DROP TYPE IF EXISTS card_range');
     // await dbClient.query('DROP TYPE IF EXISTS dice_type');
     // await dbClient.query('DROP TYPE IF EXISTS dice_category');
-    await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
+    // await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
+    await dbClient.query('DROP TYPE IF EXISTS sound_category');
 
     // create everything
     // await dbClient.query(
@@ -47,8 +52,11 @@ export const resetDatabase = async () => {
     // await dbClient.query(
     //     "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
     // );
+    // await dbClient.query(
+    //     "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
+    // );
     await dbClient.query(
-        "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
+        "CREATE TYPE sound_category AS ENUM ('SoundEffect', 'Music', 'Dialogue')"
     );
     // await dbClient.query(`CREATE TABLE cards (
     //     id              int primary key,
@@ -68,16 +76,21 @@ export const resetDatabase = async () => {
     //     description     text,
     //     index           int
     // )`);
-    await dbClient.query(`CREATE TABLE dialogues (
+    // await dbClient.query(`CREATE TABLE dialogues (
+    //     id              int generated always as identity,
+    //     category        dialogue_category,
+    //     speaker         text,
+    //     text            text
+    // )`);
+    // await dbClient.query(`CREATE TABLE books (
+    //     id              int primary key,
+    //     name            text,
+    //     description     text
+    // )`);
+    await dbClient.query(`CREATE TABLE sounds (
         id              int generated always as identity,
-        category        dialogue_category,
-        speaker         text,
-        text            text
-    )`);
-    await dbClient.query(`CREATE TABLE books (
-        id              int primary key,
-        name            text,
-        description     text
+        category        sound_category,
+        filename        text
     )`);
     await dbClient.end();
     await populateDatabase();
@@ -93,48 +106,76 @@ const populateDatabase = async () => {
     await dbClient.connect();
 
     // insert books
-    const bookFiles = fs
-        .readdirSync(englishFilesPath)
-        .filter((name) => /Books.*/.test(name));
-    console.log('book files:', bookFiles);
-    for (const fileName of bookFiles) {
-        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
-        const xmlBooks = getBooksFromXml(xml);
-        console.log(`inserting ${xmlBooks.length} books from ${fileName}`);
-        for (const book of xmlBooks) {
-            await insertBookIntoDatabase(dbClient, book);
-        }
-    }
+    // const bookFiles = fs
+    //     .readdirSync(englishFilesPath)
+    //     .filter((name) => /Books.*/.test(name));
+    // console.log('book files:', bookFiles);
+    // for (const fileName of bookFiles) {
+    //     const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+    //     const xmlBooks = getBooksFromXml(xml);
+    //     console.log(`inserting ${xmlBooks.length} books from ${fileName}`);
+    //     for (const book of xmlBooks) {
+    //         await insertBookIntoDatabase(dbClient, book);
+    //     }
+    // }
 
     // insert dialogues
-    const combatDialogueFiles = fs
-        .readdirSync(englishFilesPath)
-        .filter((name) => /CombatDialog_.*/.test(name));
-    console.log('combat dialogue files:', combatDialogueFiles);
-    for (const fileName of combatDialogueFiles) {
-        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
-        const xmlDialogues = getDialoguesFromCombatXml(xml);
-        console.log(
-            `inserting ${xmlDialogues.length} combat dialogues from ${fileName}`
-        );
-        for (const dialogue of xmlDialogues) {
-            await insertDialogueIntoDatabase(dbClient, dialogue);
-        }
-    }
+    // const combatDialogueFiles = fs
+    //     .readdirSync(englishFilesPath)
+    //     .filter((name) => /CombatDialog_.*/.test(name));
+    // console.log('combat dialogue files:', combatDialogueFiles);
+    // for (const fileName of combatDialogueFiles) {
+    //     const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+    //     const xmlDialogues = getDialoguesFromCombatXml(xml);
+    //     console.log(
+    //         `inserting ${xmlDialogues.length} combat dialogues from ${fileName}`
+    //     );
+    //     for (const dialogue of xmlDialogues) {
+    //         await insertDialogueIntoDatabase(dbClient, dialogue);
+    //     }
+    // }
 
-    const storyDialogueFiles = fs
-        .readdirSync(englishFilesPath)
-        .filter((name) => /Chapter.*/.test(name));
-    console.log('story dialogue files:', storyDialogueFiles);
-    for (const fileName of storyDialogueFiles) {
-        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
-        const xmlDialogues = getDialoguesFromStoryXml(xml);
-        console.log(
-            `inserting ${xmlDialogues.length} story dialogues from ${fileName}`
-        );
-        for (const dialogue of xmlDialogues) {
-            await insertDialogueIntoDatabase(dbClient, dialogue);
-        }
+    // const storyDialogueFiles = fs
+    //     .readdirSync(englishFilesPath)
+    //     .filter((name) => /Chapter.*/.test(name));
+    // console.log('story dialogue files:', storyDialogueFiles);
+    // for (const fileName of storyDialogueFiles) {
+    //     const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+    //     const xmlDialogues = getDialoguesFromStoryXml(xml);
+    //     console.log(
+    //         `inserting ${xmlDialogues.length} story dialogues from ${fileName}`
+    //     );
+    //     for (const dialogue of xmlDialogues) {
+    //         await insertDialogueIntoDatabase(dbClient, dialogue);
+    //     }
+    // }
+
+    // insert sounds
+    const musicFiles = glob(`${basePath}/audio/ost`);
+    const sfxFiles = fs.readdirSync(`${basePath}/audio/sfx`);
+    const voiceFiles = fs.readdirSync(`${basePath}/audio/dialogue`);
+    console.log('music files:', musicFiles);
+    console.log('sfx files:', sfxFiles);
+    console.log('voice files:', voiceFiles);
+    return;
+
+    for (const fileName of musicFiles) {
+        await insertSoundIntoDatabase(dbClient, {
+            category: SoundCategory.Music,
+            fileName,
+        });
+    }
+    for (const fileName of sfxFiles) {
+        await insertSoundIntoDatabase(dbClient, {
+            category: SoundCategory.SoundEffect,
+            fileName,
+        });
+    }
+    for (const fileName of voiceFiles) {
+        await insertSoundIntoDatabase(dbClient, {
+            category: SoundCategory.Dialogue,
+            fileName,
+        });
     }
 
     // insert cards
@@ -323,4 +364,11 @@ const insertBookIntoDatabase = async (dbClient: Client, book: Book) => {
         book.name,
         JSON.stringify(book.descs),
     ]);
+};
+
+const insertSoundIntoDatabase = async (dbClient: Client, sound: Sound) => {
+    await dbClient.query(
+        'INSERT INTO sounds(category, filename) VALUES($1, $2)',
+        [sound.category, sound.fileName]
+    );
 };

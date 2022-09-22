@@ -257,7 +257,7 @@ export const getBooksFromDatabase = async (bookName?: string) => {
 
     if (bookName !== undefined) {
         books = await dbClient.query(
-            'SELECT * FROM cards WHERE LOWER(name) LIKE LOWER($1)',
+            'SELECT * FROM books WHERE LOWER(name) LIKE LOWER($1)',
             [`%${bookName}%`]
         );
     } else {

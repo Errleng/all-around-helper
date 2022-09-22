@@ -99,7 +99,7 @@ const command: Command = {
 
         const bookName = interaction.options.getString('name');
         if (bookName === null) {
-            const books = await getBooksFromDatabase();
+            let books = await getBooksFromDatabase();
             if (books.length === 0) {
                 await interaction.reply({
                     content: 'Could not find any books',
@@ -107,7 +107,7 @@ const command: Command = {
                 });
                 return;
             }
-
+            books = books.filter((book) => book.descs.join('').length > 0);
             const randomBook = books[Math.floor(Math.random() * books.length)];
             await sendBookEmbeds(randomBook, interaction);
         } else {

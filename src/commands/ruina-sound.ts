@@ -1,8 +1,8 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction } from 'discord.js';
 import { onCommandInteraction } from '../utils';
-import { Command, DialogueCategory, SoundCategory } from '../types';
-import { getDialoguesFromDatabase } from '../database';
+import { Command, SoundCategory } from '../types';
+import { getSoundsFromDatabase } from '../database';
 
 const command: Command = {
     data: new SlashCommandBuilder()
@@ -39,31 +39,30 @@ const command: Command = {
             return;
         }
 
-        let dialogues = await getDialoguesFromDatabase();
-        if (dialogues.length === 0) {
+        await interaction.deferReply();
+
+        let sounds = await getSoundsFromDatabase();
+        if (sounds.length === 0) {
             await interaction.reply({
-                content: 'Could not find any quotes',
+                content: 'Could not find any sounds',
                 ephemeral: true,
             });
             return;
         }
 
         const selectedCategory = interaction.options.getString('category');
-        if (selectedCategory !== null) {
-            const filterCategory =
-                DialogueCategory[
-                    selectedCategory as keyof typeof DialogueCategory
-                ];
-            dialogues = dialogues.filter(
-                (dialogue) => dialogue.category === filterCategory
-            );
-        }
+        const filterCategory =
+            SoundCategory[
+                selectedCategory as keyof typeof SoundCategory
+            ];
+        sounds = sounds.filter(
+            (sound) => sound.category === filterCategory
+        );
 
-        const randomDialogue =
-            dialogues[Math.floor(Math.random() * dialogues.length)];
+        const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
 
-        await interaction.reply({
-            content: `${randomDialogue.speaker}: ${randomDialogue.text}`,
+        await interaction.editReply({
+            files: [randomSound.fileName]
         });
     },
 };

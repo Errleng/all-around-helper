@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { Client } from 'pg';
-
+import glob from 'glob';
 import { env, POSTGRES_CONNECTION, UNICODE_ASCII_MAP } from './constants';
 import {
     Book,
@@ -80,7 +80,8 @@ export const resetDatabase = async () => {
     //     id              int generated always as identity,
     //     category        dialogue_category,
     //     speaker         text,
-    //     text            text
+    //     text            text,
+    //     voice_file      text
     // )`);
     // await dbClient.query(`CREATE TABLE books (
     //     id              int primary key,
@@ -90,7 +91,7 @@ export const resetDatabase = async () => {
     await dbClient.query(`CREATE TABLE sounds (
         id              int generated always as identity,
         category        sound_category,
-        filename        text
+        file_name        text
     )`);
     await dbClient.end();
     await populateDatabase();
@@ -151,31 +152,17 @@ const populateDatabase = async () => {
     // }
 
     // insert sounds
-    const musicFiles = glob(`${basePath}/audio/ost`);
-    const sfxFiles = fs.readdirSync(`${basePath}/audio/sfx`);
-    const voiceFiles = fs.readdirSync(`${basePath}/audio/dialogue`);
-    console.log('music files:', musicFiles);
-    console.log('sfx files:', sfxFiles);
-    console.log('voice files:', voiceFiles);
-    return;
-
+    const musicFiles = glob.sync(`${basePath}/audio/ost/**/*`, {nocase: true, nodir: true});
     for (const fileName of musicFiles) {
-        await insertSoundIntoDatabase(dbClient, {
-            category: SoundCategory.Music,
-            fileName,
-        });
+        await insertSoundIntoDatabase(dbClient, {category: SoundCategory.Music, fileName});
     }
-    for (const fileName of sfxFiles) {
-        await insertSoundIntoDatabase(dbClient, {
-            category: SoundCategory.SoundEffect,
-            fileName,
-        });
+    const soundEffectFiles = glob.sync(`${basePath}/audio/sfx/**/*`, {nocase: true, nodir: true});
+    for (const fileName of soundEffectFiles) {
+        await insertSoundIntoDatabase(dbClient, {category: SoundCategory.SoundEffect, fileName});
     }
-    for (const fileName of voiceFiles) {
-        await insertSoundIntoDatabase(dbClient, {
-            category: SoundCategory.Dialogue,
-            fileName,
-        });
+    const dialogueFiles = glob.sync(`${basePath}/audio/dialogue/**/*`, {nocase: true, nodir: true});
+    for (const fileName of dialogueFiles) {
+        await insertSoundIntoDatabase(dbClient, {category: SoundCategory.Dialogue, fileName});
     }
 
     // insert cards
@@ -282,6 +269,7 @@ export const getDialoguesFromDatabase = async () => {
                 ],
             speaker: dialogueRow.speaker,
             text: dialogueRow.text,
+            voiceFile: dialogueRow.voice_file
         };
         result.push(dialogue);
     }
@@ -315,6 +303,27 @@ export const getBooksFromDatabase = async (bookName?: string) => {
         };
         result.push(book);
     }
+    await dbClient.end();
+    return result;
+};
+
+export const getSoundsFromDatabase = async () => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    const sounds = await dbClient.query('SELECT * FROM sounds');
+
+    const result: Sound[] = [];
+    for (const row of sounds.rows) {
+        const sound: Sound = {
+            category:
+                SoundCategory[
+                    row.category as keyof typeof SoundCategory
+                ],
+            fileName: row.file_name
+        };
+        result.push(sound);
+    }
+
     await dbClient.end();
     return result;
 };
@@ -353,8 +362,8 @@ const insertDialogueIntoDatabase = async (
     dialogue: Dialogue
 ) => {
     await dbClient.query(
-        'INSERT INTO dialogues(category, speaker, text) VALUES($1, $2, $3)',
-        [DialogueCategory[dialogue.category], dialogue.speaker, dialogue.text]
+        'INSERT INTO dialogues(category, speaker, text, voice_file) VALUES($1, $2, $3, $4)',
+        [DialogueCategory[dialogue.category], dialogue.speaker, dialogue.text, dialogue.voiceFile]
     );
 };
 
@@ -368,7 +377,7 @@ const insertBookIntoDatabase = async (dbClient: Client, book: Book) => {
 
 const insertSoundIntoDatabase = async (dbClient: Client, sound: Sound) => {
     await dbClient.query(
-        'INSERT INTO sounds(category, filename) VALUES($1, $2)',
-        [sound.category, sound.fileName]
+        'INSERT INTO sounds(category, file_name) VALUES($1, $2)',
+        [SoundCategory[sound.category], sound.fileName]
     );
 };

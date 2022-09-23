@@ -35,6 +35,7 @@ export interface Dialogue {
     category: DialogueCategory;
     speaker: string;
     text: string;
+    voiceFile: string;
 }
 
 export interface Book {

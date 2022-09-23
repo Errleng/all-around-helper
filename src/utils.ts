@@ -532,6 +532,7 @@ export const getDialoguesFromCombatXml = (xml: string) => {
                             category: DialogueCategory.Combat,
                             speaker: `${groupName} - ${character['@_ID']} - ${battleDialogue['@_ID']}`,
                             text: battleDialogue['#text'],
+                            voiceFile: ''
                         };
                         dialogues.push(dialogue);
                     }
@@ -545,6 +546,7 @@ export const getDialoguesFromCombatXml = (xml: string) => {
                     category: DialogueCategory.Combat,
                     speaker: speech['@_id'],
                     text: speech['#text'],
+                    voiceFile: ''
                 };
                 dialogues.push(dialogue);
             }
@@ -579,6 +581,7 @@ export const getDialoguesFromStoryXml = (xml: string) => {
                             category: DialogueCategory.Story,
                             speaker: `${dialog['Teller']} (${dialog['Title']})`,
                             text: dialog['Content'],
+                            voiceFile: dialog['VoiceFile']
                         };
                         dialogues.push(dialogue);
                     }

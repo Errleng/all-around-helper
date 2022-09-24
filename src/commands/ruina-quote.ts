@@ -1,8 +1,8 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction } from 'discord.js';
+import { CommandInteraction, BufferResolvable } from 'discord.js';
 import { onCommandInteraction } from '../utils';
 import { Command, DialogueCategory } from '../types';
-import { getDialoguesFromDatabase } from '../database';
+import { getDialoguesFromDatabase, getSoundsFromDatabase } from '../database';
 
 const command: Command = {
     data: new SlashCommandBuilder()
@@ -61,8 +61,20 @@ const command: Command = {
         const randomDialogue =
             dialogues[Math.floor(Math.random() * dialogues.length)];
 
+        const files: BufferResolvable[] = [];
+        if (DialogueCategory[selectedCategory as keyof typeof DialogueCategory] === DialogueCategory.Story) {
+            const sounds = await getSoundsFromDatabase();
+            const dialogueSound = sounds.find(x => x.fileName.includes(randomDialogue.voiceFile + '.wav'));
+            if (dialogueSound === undefined) {
+                console.error('Could not find any voice file for', randomDialogue);
+                return;
+            }
+            files.push(dialogueSound.fileName);
+        }
+
         await interaction.reply({
             content: `${randomDialogue.speaker}: ${randomDialogue.text}`,
+            files: files
         });
     },
 };

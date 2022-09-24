@@ -47,8 +47,6 @@ const command: Command = {
             return;
         }
 
-        await interaction.deferReply();
-
         let sounds = await getSoundsFromDatabase();
         if (sounds.length === 0) {
             await interaction.reply({
@@ -71,17 +69,19 @@ const command: Command = {
         if (soundName === null) {
             const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
 
-            await interaction.editReply({
+            await interaction.reply({
                 files: [randomSound.fileName]
             });
         } else {
             const foundSounds = sounds.filter(x => path.parse(x.fileName).name.toLocaleLowerCase().includes(soundName.toLocaleLowerCase()));
             if (foundSounds.length === 0) {
-                await interaction.editReply({
+                await interaction.reply({
                     content: 'Could not find any sounds',
+                    ephemeral: true,
                 });
                 return;
             }
+            console.log('Found sounds', foundSounds);
 
             const rows: MessageActionRow[] = [];
             let currentRow = new MessageActionRow();
@@ -96,7 +96,7 @@ const command: Command = {
 
                 currentRow.addComponents(
                     new MessageButton()
-                        .setCustomId(path.parse(sound.fileName).name)
+                        .setCustomId(sound.id.toString())
                         .setLabel(path.parse(sound.fileName).name)
                         .setStyle('SECONDARY')
                 );
@@ -105,7 +105,7 @@ const command: Command = {
                 rows.push(currentRow);
             }
 
-            await interaction.editReply({
+            await interaction.reply({
                 content: 'Search results',
                 components: rows,
             });
@@ -125,11 +125,15 @@ const command: Command = {
 
             collector?.on('collect', async (int: ButtonInteraction) => {
                 await int.deferReply();
-                const sound = sounds.find(x => x.fileName.includes(int.customId));
+                const sound = sounds.find(x => x.id === Number(int.customId));
                 if (sound === undefined) {
                     console.error(`button sound not found: ${int.customId}`);
                     return;
                 }
+                await interaction.editReply({
+                    content: `Displaying ${int.customId}`,
+                    components: [],
+                });
                 await int.editReply({
                     files: [sound.fileName]
                 });

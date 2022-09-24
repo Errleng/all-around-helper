@@ -203,7 +203,6 @@ const command: Command = {
                     content: `Displaying ${book.name} (${book.id})`,
                     components: [],
                 });
-                console.log('the interaction is', int);
                 await sendBookEmbeds(book, int);
             });
 

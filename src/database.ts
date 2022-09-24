@@ -154,15 +154,15 @@ const populateDatabase = async () => {
     // insert sounds
     const musicFiles = glob.sync(`${basePath}/audio/ost/**/*`, {nocase: true, nodir: true});
     for (const fileName of musicFiles) {
-        await insertSoundIntoDatabase(dbClient, {category: SoundCategory.Music, fileName});
+        await insertSoundIntoDatabase(dbClient, {id: -1, category: SoundCategory.Music, fileName});
     }
     const soundEffectFiles = glob.sync(`${basePath}/audio/sfx/**/*`, {nocase: true, nodir: true});
     for (const fileName of soundEffectFiles) {
-        await insertSoundIntoDatabase(dbClient, {category: SoundCategory.SoundEffect, fileName});
+        await insertSoundIntoDatabase(dbClient, {id: -1, category: SoundCategory.SoundEffect, fileName});
     }
     const dialogueFiles = glob.sync(`${basePath}/audio/dialogue/**/*`, {nocase: true, nodir: true});
     for (const fileName of dialogueFiles) {
-        await insertSoundIntoDatabase(dbClient, {category: SoundCategory.Dialogue, fileName});
+        await insertSoundIntoDatabase(dbClient, {id: -1, category: SoundCategory.Dialogue, fileName});
     }
 
     // insert cards
@@ -315,6 +315,7 @@ export const getSoundsFromDatabase = async () => {
     const result: Sound[] = [];
     for (const row of sounds.rows) {
         const sound: Sound = {
+            id: row.id,
             category:
                 SoundCategory[
                     row.category as keyof typeof SoundCategory

@@ -45,6 +45,7 @@ export interface Book {
 }
 
 export interface Sound {
+    id: number;
     category: SoundCategory;
     fileName: string;
 }

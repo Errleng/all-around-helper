@@ -97,6 +97,111 @@ export const resetDatabase = async () => {
     await populateDatabase();
 };
 
+const insertBooks = async (dbClient: Client, englishFilesPath: string) => {
+    const bookFiles = fs
+        .readdirSync(englishFilesPath)
+        .filter((name) => /Books.*/.test(name));
+    console.log('book files:', bookFiles);
+    for (const fileName of bookFiles) {
+        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+        const xmlBooks = getBooksFromXml(xml);
+        console.log(`inserting ${xmlBooks.length} books from ${fileName}`);
+        for (const book of xmlBooks) {
+            await insertBookIntoDatabase(dbClient, book);
+        }
+    }
+};
+
+const insertDialogues = async (dbClient: Client, englishFilesPath: string) => {
+    const combatDialogueFiles = fs
+        .readdirSync(englishFilesPath)
+        .filter((name) => /CombatDialog_.*/.test(name));
+    console.log('combat dialogue files:', combatDialogueFiles);
+    for (const fileName of combatDialogueFiles) {
+        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+        const xmlDialogues = getDialoguesFromCombatXml(xml);
+        console.log(
+            `inserting ${xmlDialogues.length} combat dialogues from ${fileName}`
+        );
+        for (const dialogue of xmlDialogues) {
+            await insertDialogueIntoDatabase(dbClient, dialogue);
+        }
+    }
+    const storyDialogueFiles = fs
+        .readdirSync(englishFilesPath)
+        .filter((name) => /Chapter.*/.test(name));
+    console.log('story dialogue files:', storyDialogueFiles);
+    for (const fileName of storyDialogueFiles) {
+        const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
+        const xmlDialogues = getDialoguesFromStoryXml(xml);
+        console.log(
+            `inserting ${xmlDialogues.length} story dialogues from ${fileName}`
+        );
+        for (const dialogue of xmlDialogues) {
+            await insertDialogueIntoDatabase(dbClient, dialogue);
+        }
+    }
+};
+
+const insertSounds = async (dbClient: Client) => {
+    const basePath = env.EXTRACTED_ASSETS_DIR;
+    const musicFiles = glob.sync(`${basePath}/Audio/OST/**/*`, { nodir: true });
+    for (const fileName of musicFiles) {
+        await insertSoundIntoDatabase(dbClient, { id: -1, category: SoundCategory.Music, fileName });
+    }
+    const soundEffectFiles = glob.sync(`${basePath}/Audio/SFX/**/*`, { nodir: true });
+    for (const fileName of soundEffectFiles) {
+        await insertSoundIntoDatabase(dbClient, { id: -1, category: SoundCategory.SoundEffect, fileName });
+    }
+    const dialogueFiles = glob.sync(`${basePath}/Audio/Dialogue/**/*`, { nodir: true });
+    for (const fileName of dialogueFiles) {
+        await insertSoundIntoDatabase(dbClient, { id: -1, category: SoundCategory.Dialogue, fileName });
+    }
+};
+
+const insertCards = async (dbClient: Client, textFilesPath: string) => {
+    const cardInfoFiles = fs
+        .readdirSync(textFilesPath)
+        .filter((name) => /CardInfo_.*/.test(name));
+    console.log('card info files:', cardInfoFiles);
+
+    const cards: Card[] = [];
+    for (const fileName of cardInfoFiles) {
+        const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
+        const xmlCards = getCardsFromXml(xml);
+        xmlCards.forEach((card) => cards.push(card));
+    }
+
+    const uniqueCards: Card[] = [];
+    for (const card of cards) {
+        if (uniqueCards.some((existing) => existing.id === card.id)) {
+            console.warn(
+                `found card that already exists: ${card.name} (${card.id})`
+            );
+            continue;
+        }
+        uniqueCards.push(card);
+    }
+
+    const unicodes = new Map();
+    for (const card of uniqueCards) {
+        // replace Unicode characters with closest equivalents
+        let filteredName = '';
+        for (let i = 0; i < card.name.length; i++) {
+            const charCode = card.name.charCodeAt(i);
+            if (charCode in UNICODE_ASCII_MAP) {
+                filteredName += UNICODE_ASCII_MAP[charCode];
+            } else {
+                filteredName += card.name.charAt(i);
+            }
+        }
+        card.name = filteredName;
+
+        await insertCardIntoDatabase(dbClient, card);
+    }
+    console.log(JSON.stringify(Object.fromEntries(unicodes)));
+};
+
 const populateDatabase = async () => {
     // read everything from Library of Ruina XML
     const basePath = env.EXTRACTED_ASSETS_DIR;
@@ -106,109 +211,12 @@ const populateDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
 
-    // insert books
-    // const bookFiles = fs
-    //     .readdirSync(englishFilesPath)
-    //     .filter((name) => /Books.*/.test(name));
-    // console.log('book files:', bookFiles);
-    // for (const fileName of bookFiles) {
-    //     const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
-    //     const xmlBooks = getBooksFromXml(xml);
-    //     console.log(`inserting ${xmlBooks.length} books from ${fileName}`);
-    //     for (const book of xmlBooks) {
-    //         await insertBookIntoDatabase(dbClient, book);
-    //     }
-    // }
-
-    // insert dialogues
-    // const combatDialogueFiles = fs
-    //     .readdirSync(englishFilesPath)
-    //     .filter((name) => /CombatDialog_.*/.test(name));
-    // console.log('combat dialogue files:', combatDialogueFiles);
-    // for (const fileName of combatDialogueFiles) {
-    //     const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
-    //     const xmlDialogues = getDialoguesFromCombatXml(xml);
-    //     console.log(
-    //         `inserting ${xmlDialogues.length} combat dialogues from ${fileName}`
-    //     );
-    //     for (const dialogue of xmlDialogues) {
-    //         await insertDialogueIntoDatabase(dbClient, dialogue);
-    //     }
-    // }
-
-    // const storyDialogueFiles = fs
-    //     .readdirSync(englishFilesPath)
-    //     .filter((name) => /Chapter.*/.test(name));
-    // console.log('story dialogue files:', storyDialogueFiles);
-    // for (const fileName of storyDialogueFiles) {
-    //     const xml = fs.readFileSync(`${englishFilesPath}/${fileName}`, 'utf-8');
-    //     const xmlDialogues = getDialoguesFromStoryXml(xml);
-    //     console.log(
-    //         `inserting ${xmlDialogues.length} story dialogues from ${fileName}`
-    //     );
-    //     for (const dialogue of xmlDialogues) {
-    //         await insertDialogueIntoDatabase(dbClient, dialogue);
-    //     }
-    // }
-
-    // insert sounds
-    const musicFiles = glob.sync(`${basePath}/audio/ost/**/*`, {nocase: true, nodir: true});
-    for (const fileName of musicFiles) {
-        await insertSoundIntoDatabase(dbClient, {id: -1, category: SoundCategory.Music, fileName});
-    }
-    const soundEffectFiles = glob.sync(`${basePath}/audio/sfx/**/*`, {nocase: true, nodir: true});
-    for (const fileName of soundEffectFiles) {
-        await insertSoundIntoDatabase(dbClient, {id: -1, category: SoundCategory.SoundEffect, fileName});
-    }
-    const dialogueFiles = glob.sync(`${basePath}/audio/dialogue/**/*`, {nocase: true, nodir: true});
-    for (const fileName of dialogueFiles) {
-        await insertSoundIntoDatabase(dbClient, {id: -1, category: SoundCategory.Dialogue, fileName});
-    }
-
-    // insert cards
-    // const cardInfoFiles = fs
-    //     .readdirSync(textFilesPath)
-    //     .filter((name) => /CardInfo_.*/.test(name));
-    // console.log('card info files:', cardInfoFiles);
-
-    // const cards: Card[] = [];
-    // for (const fileName of cardInfoFiles) {
-    //     const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
-    //     const xmlCards = getCardsFromXml(xml);
-    //     xmlCards.forEach((card) => cards.push(card));
-    // }
-
-    // const uniqueCards: Card[] = [];
-    // for (const card of cards) {
-    //     if (uniqueCards.some((existing) => existing.id === card.id)) {
-    //         console.warn(
-    //             `found card that already exists: ${card.name} (${card.id})`
-    //         );
-    //         continue;
-    //     }
-    //     uniqueCards.push(card);
-    // }
-
-    // const unicodes = new Map();
-
-    // for (const card of uniqueCards) {
-    //     // replace Unicode characters with closest equivalents
-    //     let filteredName = '';
-    //     for (let i = 0; i < card.name.length; i++) {
-    //         const charCode = card.name.charCodeAt(i);
-    //         if (charCode in UNICODE_ASCII_MAP) {
-    //             filteredName += UNICODE_ASCII_MAP[charCode];
-    //         } else {
-    //             filteredName += card.name.charAt(i);
-    //         }
-    //     }
-    //     card.name = filteredName;
-
-    //     await insertCardIntoDatabase(dbClient, card);
-    // }
+    // await insertBooks(dbClient, englishFilesPath);
+    // await insertDialogues(dbClient, englishFilesPath);
+    await insertSounds(dbClient);
+    // await insertCards(dbClient, textFilesPath);
 
     await dbClient.end();
-    // console.log(JSON.stringify(Object.fromEntries(unicodes)));
 };
 
 export const getCardsFromDatabase = async (cardName: string) => {
@@ -265,7 +273,7 @@ export const getDialoguesFromDatabase = async () => {
         const dialogue: Dialogue = {
             category:
                 DialogueCategory[
-                    dialogueRow.category as keyof typeof DialogueCategory
+                dialogueRow.category as keyof typeof DialogueCategory
                 ],
             speaker: dialogueRow.speaker,
             text: dialogueRow.text,
@@ -318,7 +326,7 @@ export const getSoundsFromDatabase = async () => {
             id: row.id,
             category:
                 SoundCategory[
-                    row.category as keyof typeof SoundCategory
+                row.category as keyof typeof SoundCategory
                 ],
             fileName: row.file_name
         };

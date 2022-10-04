@@ -1,14 +1,14 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { ButtonInteraction, CommandInteraction, MessageActionRow, MessageButton, VoiceChannel } from 'discord.js';
-import { VoiceConnectionStatus, AudioPlayerStatus, joinVoiceChannel, createAudioPlayer, NoSubscriberBehavior, createAudioResource, DiscordGatewayAdapterCreator, AudioPlayer } from '@discordjs/voice';
+import { VoiceConnectionStatus, AudioPlayerStatus, joinVoiceChannel, createAudioPlayer, NoSubscriberBehavior, createAudioResource, DiscordGatewayAdapterCreator } from '@discordjs/voice';
 import { onCommandInteraction } from '../utils';
 import { Command, SoundCategory } from '../types';
 import { getSoundsFromDatabase } from '../database';
 import { env, MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
 import path from 'path';
 import { client } from '../index';
+import { players } from './stop-sounds';
 
-export const players: AudioPlayer[] = [];
 
 const playSoundOnChannel = async (interaction: CommandInteraction, channelId: string, soundFile: string) => {
     let channel = null;
@@ -118,6 +118,11 @@ const command: Command = {
 
         if (interaction.user.id !== env.DEV_USER) {
             console.debug(`unauthorized user ${interaction.user.username} tried to use ${command.data.name}`);
+            await interaction.reply({
+                content: 'Unauthorized',
+                ephemeral: true
+            });
+            await interaction.deleteReply();
             return;
         }
 

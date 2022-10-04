@@ -1,9 +1,10 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
+import { AudioPlayer } from '@discordjs/voice';
 import { CommandInteraction } from 'discord.js';
 import { Command } from '../types';
 import { onCommandInteraction } from '../utils';
-import { players } from './ruina-spook';
 
+export const players: AudioPlayer[] = [];
 const command: Command = {
     data: new SlashCommandBuilder()
         .setName('stop-sounds')

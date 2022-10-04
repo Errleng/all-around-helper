@@ -1,10 +1,73 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { ButtonInteraction, CommandInteraction, MessageActionRow, MessageButton } from 'discord.js';
+import { ButtonInteraction, CommandInteraction, MessageActionRow, MessageButton, VoiceChannel } from 'discord.js';
 import { onCommandInteraction } from '../utils';
 import { Command, SoundCategory } from '../types';
 import { getSoundsFromDatabase } from '../database';
-import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
+import { env, MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
 import path from 'path';
+import { client } from '../index';
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, NoSubscriberBehavior, VoiceConnectionStatus } from '@discordjs/voice';
+import { players } from './stop-sounds';
+
+const playSoundOnChannel = async (interaction: CommandInteraction, channelId: string, soundFile: string) => {
+    let channel = null;
+    try {
+        channel = await client.channels.fetch(channelId);
+    } catch (error) {
+        console.error(`Error fetching channel ${channelId}:`, error);
+    }
+    if (channel === null) {
+        await interaction.reply({
+            content: `Invalid voice channel: ${channelId}`,
+            ephemeral: true
+        });
+        return;
+    }
+    if (!channel.isVoice()) {
+        await interaction.reply({
+            content: `Not a voice channel: ${channelId}`,
+            ephemeral: true
+        });
+        return;
+    }
+    console.log('voice channel', channel);
+    const voiceChannel = channel as VoiceChannel;
+    const connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: voiceChannel.guild.id,
+        adapterCreator: voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
+    });
+
+    const soundResource = createAudioResource(soundFile);
+    const player = createAudioPlayer({
+        behaviors: {
+            noSubscriber: NoSubscriberBehavior.Pause
+        }
+    });
+    players.push(player);
+    player.on('error', (error) => {
+        console.error(`Audio player encountered error playing ${soundFile}:`, error);
+    });
+    player.play(soundResource);
+
+    connection.on(VoiceConnectionStatus.Ready, () => {
+        console.debug('voice connection ready');
+        connection.subscribe(player);
+    });
+    connection.on(VoiceConnectionStatus.Disconnected, () => {
+        console.debug('voice connection disconnected');
+        player.stop();
+    });
+    player.on(AudioPlayerStatus.Idle, () => {
+        console.debug('audio player has nothing to play');
+        player.stop();
+        connection.destroy();
+    });
+    await interaction.editReply({
+        content: `Playing ${path.parse(soundFile).name} in channel ${channel.guild.name} > ${channel.name}`,
+        components: [],
+    });
+};
 
 const command: Command = {
     data: new SlashCommandBuilder()
@@ -20,12 +83,17 @@ const command: Command = {
                     ['SFX', SoundCategory[SoundCategory.SoundEffect]],
                     ['Music', SoundCategory[SoundCategory.Music]],
                     ['Dialogue', SoundCategory[SoundCategory.Dialogue]],
-                ])
-        )
+                ]))
         .addStringOption((option) =>
             option
                 .setName('name')
                 .setDescription('Sound name')
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName('channel')
+                .setDescription('Voice channel ID to play sound in')
                 .setRequired(false)
         ),
     async execute(interaction: CommandInteraction) {
@@ -66,12 +134,29 @@ const command: Command = {
         );
 
         const soundName = interaction.options.getString('name');
+        const channelId = interaction.options.getString('channel');
+
+        if (channelId !== null && interaction.user.id !== env.DEV_USER) {
+            console.debug(`unauthorized user ${interaction.user.username} tried to use ${command.data.name}`);
+            await interaction.reply({
+                content: 'Unauthorized',
+                ephemeral: true
+            });
+            await interaction.deleteReply();
+            return;
+        }
+
+
         if (soundName === null) {
             const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
 
-            await interaction.reply({
-                files: [randomSound.fileName]
-            });
+            if (channelId === null) {
+                await interaction.reply({
+                    files: [randomSound.fileName]
+                });
+            } else {
+                await playSoundOnChannel(interaction, channelId, randomSound.fileName);
+            }
         } else {
             const foundSounds = sounds.filter((x) => path.parse(x.fileName).name.toLocaleLowerCase().includes(soundName.toLocaleLowerCase()));
             if (foundSounds.length === 0) {
@@ -129,13 +214,22 @@ const command: Command = {
                     console.error(`button sound not found: ${int.customId}`);
                     return;
                 }
-                await interaction.editReply({
-                    content: `Displaying ${int.customId}`,
-                    components: [],
-                });
-                await int.editReply({
-                    files: [sound.fileName]
-                });
+                if (channelId === null) {
+                    await interaction.editReply({
+                        content: `Displaying ${int.customId}`,
+                        components: [],
+                    });
+                    await int.editReply({
+                        files: [sound.fileName]
+                    });
+                }
+                else {
+                    await playSoundOnChannel(interaction, channelId, sound.fileName);
+                    await int.editReply({
+                        content: 'Done'
+                    });
+                    await int.deleteReply();
+                }
             });
 
             collector?.on('end', (collected) => {

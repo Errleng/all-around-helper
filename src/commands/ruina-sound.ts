@@ -136,17 +136,6 @@ const command: Command = {
         const soundName = interaction.options.getString('name');
         const channelId = interaction.options.getString('channel');
 
-        if (channelId !== null && interaction.user.id !== env.DEV_USER) {
-            console.debug(`unauthorized user ${interaction.user.username} tried to use ${command.data.name}`);
-            await interaction.reply({
-                content: 'Unauthorized',
-                ephemeral: true
-            });
-            await interaction.deleteReply();
-            return;
-        }
-
-
         if (soundName === null) {
             const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
 

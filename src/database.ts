@@ -27,37 +27,37 @@ export const resetDatabase = async () => {
 
     // delete everything
     await dbClient.connect();
-    // await dbClient.query('DROP TABLE IF EXISTS dice');
-    // await dbClient.query('DROP TABLE IF EXISTS cards');
-    // await dbClient.query('DROP TABLE IF EXISTS dialogues');
-    // await dbClient.query('DROP TABLE IF EXISTS books');
-    // await dbClient.query('DROP TABLE IF EXISTS sounds');
-    // await dbClient.query('DROP TYPE IF EXISTS card_rarity');
-    // await dbClient.query('DROP TYPE IF EXISTS card_range');
-    // await dbClient.query('DROP TYPE IF EXISTS dice_type');
-    // await dbClient.query('DROP TYPE IF EXISTS dice_category');
-    // await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
-    // await dbClient.query('DROP TYPE IF EXISTS sound_category');
+    await dbClient.query('DROP TABLE IF EXISTS dice');
+    await dbClient.query('DROP TABLE IF EXISTS cards');
+    await dbClient.query('DROP TABLE IF EXISTS dialogues');
+    await dbClient.query('DROP TABLE IF EXISTS books');
+    await dbClient.query('DROP TABLE IF EXISTS sounds');
+    await dbClient.query('DROP TYPE IF EXISTS card_rarity');
+    await dbClient.query('DROP TYPE IF EXISTS card_range');
+    await dbClient.query('DROP TYPE IF EXISTS dice_type');
+    await dbClient.query('DROP TYPE IF EXISTS dice_category');
+    await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
+    await dbClient.query('DROP TYPE IF EXISTS sound_category');
 
     // create everything
-    // await dbClient.query(
-    //     "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
-    // );
-    // await dbClient.query(
-    //     "CREATE TYPE card_range AS ENUM ('Near', 'Far', 'FarArea', 'FarAreaEach', 'Instance')"
-    // );
-    // await dbClient.query(
-    //     "CREATE TYPE dice_type AS ENUM ('Slash', 'Penetrate', 'Hit', 'Guard', 'Evasion')"
-    // );
-    // await dbClient.query(
-    //     "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
-    // );
-    // await dbClient.query(
-    //     "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
-    // );
-    // await dbClient.query(
-    //     "CREATE TYPE sound_category AS ENUM ('SoundEffect', 'Music', 'Dialogue')"
-    // );
+    await dbClient.query(
+        "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
+    );
+    await dbClient.query(
+        "CREATE TYPE card_range AS ENUM ('Near', 'Far', 'FarArea', 'FarAreaEach', 'Instance')"
+    );
+    await dbClient.query(
+        "CREATE TYPE dice_type AS ENUM ('Slash', 'Penetrate', 'Hit', 'Guard', 'Evasion')"
+    );
+    await dbClient.query(
+        "CREATE TYPE dice_category AS ENUM ('Atk', 'Def', 'Standby')"
+    );
+    await dbClient.query(
+        "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
+    );
+    await dbClient.query(
+        "CREATE TYPE sound_category AS ENUM ('SoundEffect', 'Music', 'Dialogue')"
+    );
     await dbClient.query(`CREATE TABLE IF NOT EXISTS cards (
         id              int primary key,
         name            text,
@@ -211,10 +211,10 @@ const populateDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
 
-    // await insertCards(dbClient, textFilesPath);
-    // await insertBooks(dbClient, englishFilesPath);
-    // await insertDialogues(dbClient, englishFilesPath);
-    // await insertSounds(dbClient);
+    await insertCards(dbClient, textFilesPath);
+    await insertBooks(dbClient, englishFilesPath);
+    await insertDialogues(dbClient, englishFilesPath);
+    await insertSounds(dbClient);
 
     await dbClient.end();
 };

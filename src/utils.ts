@@ -45,12 +45,9 @@ setInterval(() => {
 
 export const onCommandInteraction = (interaction: CommandInteraction) => {
     console.log(
-        `${interaction.createdAt} - Command ${
-            interaction.commandName
-        } used in channel "${
-            interaction.guild?.channels.cache.get(interaction.channelId)?.name
-        }" (${interaction.channelId}) by user ${
-            interaction.user.username
+        `${interaction.createdAt} - Command ${interaction.commandName
+        } used in channel "${interaction.guild?.channels.cache.get(interaction.channelId)?.name
+        }" (${interaction.channelId}) by user ${interaction.user.username
         } with arguments`,
         interaction.options
     );
@@ -316,11 +313,10 @@ export const getCardsFromXml = (xml: string) => {
         // attributesGroupName: '@',
         isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
     });
+    const textFiles = fs.readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`);
 
     const getCardName = (cardId: string) => {
-        const cardNamesFiles = fs
-            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`)
-            .filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
+        const cardNamesFiles = textFiles.filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
         for (const cardNameFile of cardNamesFiles) {
             const cardNamesXml = fs.readFileSync(
                 `${env.EXTRACTED_ASSETS_DIR}/text/EN/${cardNameFile}`,
@@ -329,7 +325,7 @@ export const getCardsFromXml = (xml: string) => {
             const cardNamesJs = xmlParser.parse(cardNamesXml);
             const cardDescs: any[] =
                 cardNamesJs['BattleCardDescRoot']['cardDescList'][
-                    'BattleCardDesc'
+                'BattleCardDesc'
                 ];
             const cardDesc = cardDescs.find((desc) => desc['@_ID'] === cardId);
             if (cardDesc === undefined) {
@@ -354,9 +350,7 @@ export const getCardsFromXml = (xml: string) => {
         abilityId: string,
         diceIndex?: number
     ) => {
-        const abilityFiles = fs
-            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`)
-            .filter((name) => /EN_BattleCardAbilities.*/.test(name));
+        const abilityFiles = textFiles.filter((name) => /EN_BattleCardAbilities.*/.test(name));
         for (const abilityFile of abilityFiles) {
             const abilitiesXml = fs.readFileSync(
                 `${env.EXTRACTED_ASSETS_DIR}/text/EN/${abilityFile}`,
@@ -383,9 +377,7 @@ export const getCardsFromXml = (xml: string) => {
             return abilityDesc;
         }
 
-        const cardFiles = fs
-            .readdirSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN`)
-            .filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
+        const cardFiles = textFiles.filter((name) => /EN_BattleCards[^a-zA-Z].*/.test(name));
         for (const cardFile of cardFiles) {
             const cardXml = fs.readFileSync(
                 `${env.EXTRACTED_ASSETS_DIR}/text/EN/${cardFile}`,
@@ -480,6 +472,7 @@ export const getCardsFromXml = (xml: string) => {
         const spec = jsCard['Spec'];
         const cardScript = jsCard['Script'];
         const cardName = getCardName(cardId) ?? jsCard['Name'];
+        console.log(`get card ${cards.length + 1}/${Object.keys(jsCards).length} ${cardName} from xml`);
         const cardImage = jsCard['Artwork'];
         if (!doesImageExist(cardImage)) {
             // probably a card that is cut from the game

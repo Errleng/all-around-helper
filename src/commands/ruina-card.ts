@@ -176,7 +176,7 @@ const command: Command = {
                 if (env.USE_COLORED_TEXT) {
                     text += `\`\`\`${getSyntaxForColor(
                         DICE_CATEGORY_COLOR_MAP[
-                            dice.category
+                        dice.category
                         ] as ColorResolvable
                     )}\n${diceEmoji}[${diceRoll}]\t${dice.description}\n\`\`\``;
                 } else {

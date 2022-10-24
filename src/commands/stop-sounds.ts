@@ -1,13 +1,12 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { AudioPlayer } from '@discordjs/voice';
 import { CommandInteraction } from 'discord.js';
+import { stopPlaying } from '../audio-manager';
 import { Command } from '../types';
 import { onCommandInteraction } from '../utils';
 
-export const players: AudioPlayer[] = [];
 const command: Command = {
     data: new SlashCommandBuilder()
-        .setName('stop-sounds')
+        .setName('silence-knave')
         .setDescription('Stops all sound players')
         .setDefaultPermission(true)
     ,
@@ -23,9 +22,7 @@ const command: Command = {
                 });
             }
         }
-        for (const player of players) {
-            player.stop();
-        }
+        stopPlaying();
         await interaction.reply({
             content: 'Stopped playing sounds',
             ephemeral: true

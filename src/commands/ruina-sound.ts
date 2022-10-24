@@ -3,11 +3,11 @@ import { ButtonInteraction, CommandInteraction, MessageActionRow, MessageButton,
 import { onCommandInteraction } from '../utils';
 import { Command, SoundCategory } from '../types';
 import { getSoundsFromDatabase } from '../database';
-import { env, MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
+import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from '../constants';
 import path from 'path';
 import { client } from '../index';
-import { AudioPlayerStatus, createAudioPlayer, createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, NoSubscriberBehavior, VoiceConnectionStatus } from '@discordjs/voice';
-import { players } from './stop-sounds';
+import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, } from '@discordjs/voice';
+import { startConnection, startPlaying } from '../audio-manager';
 
 const playSoundOnChannel = async (interaction: CommandInteraction, channelId: string, soundFile: string) => {
     let channel = null;
@@ -37,34 +37,16 @@ const playSoundOnChannel = async (interaction: CommandInteraction, channelId: st
         guildId: voiceChannel.guild.id,
         adapterCreator: voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
     });
+    startConnection(connection);
 
-    const soundResource = createAudioResource(soundFile);
-    const player = createAudioPlayer({
-        behaviors: {
-            noSubscriber: NoSubscriberBehavior.Pause
-        }
-    });
-    players.push(player);
-    player.on('error', (error) => {
-        console.error(`Audio player encountered error playing ${soundFile}:`, error);
-    });
-    player.play(soundResource);
-
-    connection.on(VoiceConnectionStatus.Ready, () => {
-        console.debug('voice connection ready');
-        connection.subscribe(player);
-    });
-    connection.on(VoiceConnectionStatus.Disconnected, () => {
-        console.debug('voice connection disconnected');
-        player.stop();
-    });
-    player.on(AudioPlayerStatus.Idle, () => {
-        console.debug('audio player has nothing to play');
-        player.stop();
-        connection.destroy();
+    const fileName = path.parse(soundFile).name;
+    startPlaying(fileName, () => {
+        const resource = createAudioResource(soundFile, { inlineVolume: true });
+        resource.volume?.setVolume(0.2);
+        return resource;
     });
     await interaction.editReply({
-        content: `Playing ${path.parse(soundFile).name} in channel ${channel.guild.name} > ${channel.name}`,
+        content: `Playing ${fileName} in channel ${channel.guild.name} > ${channel.name}`,
         components: [],
     });
 };

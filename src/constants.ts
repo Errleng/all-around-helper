@@ -16,11 +16,13 @@ export const POSTGRES_CONNECTION = {
     port: env.PGPORT,
 };
 
-export const ALLOWED_CHANNEL_IDS = ['770488167719501867', '936394221940772864'];
+export const ALLOWED_CHANNEL_IDS = ['770488167719501867', '936394221940772864', '713993861197987840'];
 
 export const ASSETS_PATH = 'assets';
 export const COMMANDS_PATH = './commands';
 export const EVENTS_PATH = './events';
+export const DOWNLOADED_AUDIO_PATH = 'downloads/audio';
+
 export const DICE_TYPE_EMOJI_MAP: Record<string, string> = {
     DefEvasion: '🔄',
     DefGuard: '🛡️',

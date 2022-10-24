@@ -23,6 +23,7 @@
     "homepage": "https://github.com/Errleng/all-around-helper#readme",
     "dependencies": {
         "@discordjs/builders": "^0.12.0",
+        "@discordjs/opus": "^0.8.0",
         "@discordjs/rest": "^0.3.0",
         "@discordjs/voice": "^0.11.0",
         "canvas": "^2.10.1",
@@ -35,7 +36,9 @@
         "jsdom": "^19.0.0",
         "libsodium-wrappers": "^0.7.10",
         "node-fetch": "^2.6.7",
-        "pg": "^8.7.3"
+        "pg": "^8.7.3",
+        "ytdl-core": "^4.11.2",
+        "ytsr": "^3.8.0"
     },
     "devDependencies": {
         "@types/dotenv-parse-variables": "^2.0.1",

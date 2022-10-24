@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
+import { AudioResource } from '@discordjs/voice';
 import { CacheType, CommandInteraction, Interaction } from 'discord.js';
 
 export interface Command {
@@ -48,6 +49,13 @@ export interface Sound {
     id: number;
     category: SoundCategory;
     fileName: string;
+}
+
+export interface AudioInfo {
+    name: string;
+    loop: boolean;
+    resource: AudioResource;
+    createResource: () => AudioResource;
 }
 
 export enum DiceCategory {

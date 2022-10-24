@@ -1,14 +1,15 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction } from 'discord.js';
-import { onCommandInteraction } from '../utils';
+import { getQueue } from '../audio-manager';
 import { Command } from '../types';
-import { env } from '../constants';
-
+import { onCommandInteraction } from '../utils';
 
 const command: Command = {
     data: new SlashCommandBuilder()
-        .setName('test')
-        .setDescription('Command testing')
+        .setName('loop-audio')
+        .setDescription(
+            'Toggle whether to loop the current audio'
+        )
         .setDefaultPermission(true),
     async execute(interaction: CommandInteraction) {
         try {
@@ -28,16 +29,18 @@ const command: Command = {
             }
             return;
         }
-
-        if (interaction.user.id !== env.DEV_USER) {
-            console.debug(`unauthorized user ${interaction.user.username} tried to use ${command.data.name}`);
+        const playQueue = getQueue();
+        if (playQueue.length === 0) {
             await interaction.reply({
-                content: 'Unauthorized',
-                ephemeral: true
+                content: 'There is nothing in the queue'
             });
-            await interaction.deleteReply();
             return;
         }
+        const currentAudio = playQueue[0];
+        currentAudio.loop = !currentAudio.loop;
+        await interaction.reply({
+            content: `${currentAudio.loop ? 'Looping' : 'No longer looping'} ${currentAudio.name}`
+        });
     },
 };
 export default command;

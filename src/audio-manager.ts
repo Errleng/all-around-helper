@@ -17,6 +17,7 @@ player.on(AudioPlayerStatus.Idle, () => {
     const currentAudio = playQueue[0];
     if (!currentAudio.loop) {
         playQueue.shift();
+        startDisconnectTimer();
     } else {
         currentAudio.resource = currentAudio.createResource();
     }
@@ -29,7 +30,6 @@ player.on(AudioPlayerStatus.Idle, () => {
     } else {
         console.debug('audio player has nothing to play');
     }
-    startDisconnectTimer();
 });
 
 export const startDisconnectTimer = () => {
@@ -41,7 +41,7 @@ export const startDisconnectTimer = () => {
         connection?.destroy();
         connection = null;
         console.debug('disconnecting after long period of idling');
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 60);
 };
 
 export const startConnection = (newConnection: VoiceConnection) => {

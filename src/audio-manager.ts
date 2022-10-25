@@ -82,6 +82,7 @@ export const enqueueAudio = (name: string, createResource: () => AudioResource) 
 };
 
 export const stopPlaying = () => {
+    playQueue.length = 0;
     player.stop();
 };
 

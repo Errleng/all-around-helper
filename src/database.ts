@@ -59,7 +59,7 @@ export const resetDatabase = async () => {
         "CREATE TYPE sound_category AS ENUM ('SoundEffect', 'Music', 'Dialogue')"
     );
     await dbClient.query(`CREATE TABLE IF NOT EXISTS cards (
-        id              text primary key,
+        id              int primary key,
         name            text,
         description     text,
         cost            int,
@@ -174,7 +174,6 @@ const insertCards = async (dbClient: Client, textFilesPath: string) => {
 
     const uniqueCards: Card[] = [];
     for (const card of cards) {
-        console.debug(`card: ${card.name} (${card.id}) (${card.cost})`);
         if (uniqueCards.some((existing) => existing.id === card.id)) {
             console.warn(
                 `found card that already exists: ${card.name} (${card.id})`

@@ -102,7 +102,7 @@ const command: Command = {
             }
             currentRow.addComponents(
                 new MessageButton()
-                    .setCustomId(card.id)
+                    .setCustomId(card.id.toString())
                     .setLabel(`${card.cost}💡 ${card.name} (${card.id})`)
                     .setStyle('SECONDARY')
             );
@@ -138,7 +138,7 @@ const command: Command = {
                 return;
             }
 
-            const cardId = i.customId;
+            const cardId = Number(i.customId);
             const card = cards.find((c) => c.id === cardId);
             if (!card) {
                 console.error(

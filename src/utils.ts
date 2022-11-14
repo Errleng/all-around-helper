@@ -289,7 +289,7 @@ export const getCardDataTiphereth: (cardName: string) => Promise<Card> = async (
     }
 
     const card: Card = {
-        id: cardId,
+        id: Number(cardId),
         name: closestCardName,
         description: cardDesc,
         cost: Number(cardCost),
@@ -483,7 +483,7 @@ export const getCardsFromXml = (xml: string) => {
         }
 
         const card: Card = {
-            id: cardId,
+            id: Number(cardId),
             name: cardName,
             description: cardScript ? getAbilityText(cardId, cardScript) : '',
             cost: Number(spec['@_Cost']),

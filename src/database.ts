@@ -174,6 +174,7 @@ const insertCards = async (dbClient: Client, textFilesPath: string) => {
 
     const uniqueCards: Card[] = [];
     for (const card of cards) {
+        console.debug(`card: ${card.name} (${card.id}) (${card.cost})`);
         if (uniqueCards.some((existing) => existing.id === card.id)) {
             console.warn(
                 `found card that already exists: ${card.name} (${card.id})`

@@ -299,7 +299,7 @@ export const getCardDataTiphereth: (cardName: string) => Promise<Card> = async (
         dice: cardDice,
     };
 
-    if (isNaN(card.cost)) {
+    if (isNaN(card.id) || isNaN(card.cost)) {
         throw new Error('Could not convert strings to numbers');
     }
     return card;

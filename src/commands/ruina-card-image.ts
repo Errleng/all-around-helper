@@ -69,9 +69,8 @@ const drawCardDice: (
 
         const diceCategory = DiceCategory[dice.category];
         const diceType = DiceType[dice.type];
-        const diceImagePath = `${ASSETS_PATH}/images/${
-            DICE_IMAGE_MAP[`${diceCategory}${diceType}`]
-        }`;
+        const diceImagePath = `${ASSETS_PATH}/images/${DICE_IMAGE_MAP[`${diceCategory}${diceType}`]
+            }`;
         const diceArt = await Canvas.loadImage(diceImagePath);
         context.drawImage(diceArt, 10, diceY + diceIconHeight * i, 50, 50);
 
@@ -195,7 +194,7 @@ const command: Command = {
             }
             currentRow.addComponents(
                 new MessageButton()
-                    .setCustomId(card.id.toString())
+                    .setCustomId(card.id)
                     .setLabel(`${card.cost}💡 ${card.name} (${card.id})`)
                     .setStyle('SECONDARY')
             );
@@ -231,7 +230,7 @@ const command: Command = {
                 return;
             }
 
-            const cardId = Number(i.customId);
+            const cardId = i.customId;
             const card = cards.find((c) => c.id === cardId);
             if (!card) {
                 console.error(

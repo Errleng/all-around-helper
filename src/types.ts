@@ -14,7 +14,7 @@ export interface ClientEvent {
 }
 
 export interface Card {
-    id: number;
+    id: string;
     name: string;
     description: string;
     cost: number;

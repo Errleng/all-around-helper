@@ -82,7 +82,7 @@ export const resetDatabase = async () => {
         emotion_rate    int,
         level           int,
         abnormality     text,
-        flavorText      text,
+        flavor_text     text,
         dialogue        text,
         image           text
     )`);
@@ -305,13 +305,13 @@ export const getAbnoPagesFromDatabase = async (name: string) => {
             name: row.name,
             description: row.description,
             sephirah: row.sephirah,
-            targetType: row.targetType,
-            emotion: row.emotion,
-            emotionLevel: row.emotionLevel,
-            emotionRate: row.emotionRate,
+            targetType: AbnoTargetType[row.target_type as keyof typeof AbnoTargetType],
+            emotion: Emotion[row.emotion as keyof typeof Emotion],
+            emotionLevel: row.emotion_level,
+            emotionRate: row.emotion_rate,
             level: row.level,
             abnormality: row.abnormality,
-            flavorText: row.flavorText,
+            flavorText: row.flavor_text,
             dialogue: JSON.parse(row.dialogue),
             image: row.image
         };

@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import dotenvParseVariables from 'dotenv-parse-variables';
-import { CardRange, CardRarity, DiceCategory } from './types';
+import { CardRange, CardRarity, DiceCategory, Emotion } from './types';
 
 const rawEnv = dotenv.config();
 if (rawEnv.error || rawEnv.parsed === undefined) {
@@ -85,6 +85,10 @@ export const DICE_CATEGORY_COLOR_MAP: Record<DiceCategory, string> = {
     [DiceCategory.Def]: '#11b6f7',
     [DiceCategory.Atk]: '#f5481c',
     [DiceCategory.Standby]: '#f9ba12',
+};
+export const EMOTION_COLOR_MAP: Record<Emotion, string> = {
+    [Emotion.Positive]: '#50FF82',
+    [Emotion.Negative]: '#FF4141',
 };
 
 // Tiphereth

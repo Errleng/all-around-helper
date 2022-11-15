@@ -13,6 +13,22 @@ export interface ClientEvent {
     execute: (args: Interaction<CacheType>) => void;
 }
 
+export interface AbnoPage {
+    id: string;
+    name: string;
+    description: string;
+    sephirah: string;
+    targetType: AbnoTargetType;
+    emotion: Emotion;
+    emotionLevel: number;
+    emotionRate: number;
+    level: number;
+    abnormality: string;
+    flavorText: string;
+    dialogue: string[];
+    image: string;
+}
+
 export interface Card {
     id: number;
     name: string;
@@ -58,6 +74,12 @@ export interface AudioInfo {
     createResource: () => AudioResource;
 }
 
+export enum AbnoTargetType {
+    SelectOne,
+    All,
+    AllIncludingEnemy
+}
+
 export enum DiceCategory {
     Atk,
     Def,
@@ -70,6 +92,11 @@ export enum DiceType {
     Hit,
     Guard,
     Evasion,
+}
+
+export enum Emotion {
+    Positive,
+    Negative
 }
 
 export enum CardRange {

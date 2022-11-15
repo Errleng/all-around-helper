@@ -16,6 +16,9 @@ import {
     DiceType,
     Dialogue,
     DialogueCategory,
+    AbnoPage,
+    Emotion,
+    AbnoTargetType,
 } from './types';
 import { JSDOM } from 'jsdom';
 import fetch from 'node-fetch';
@@ -305,6 +308,64 @@ export const getCardDataTiphereth: (cardName: string) => Promise<Card> = async (
     return card;
 };
 
+export const getAbnoPagesFromXml = (xml: string) => {
+    const ALWAYS_ARRAY_TAGS = ['EmotionCard', 'Sephirah', 'AbnormalityCard', 'Dialogue'];
+    const xmlParser = new XMLParser({
+        ignoreAttributes: false,
+        isArray: (name) => ALWAYS_ARRAY_TAGS.includes(name),
+    });
+    const pages: AbnoPage[] = [];
+
+    const abnoPageJs = xmlParser.parse(xml);
+    const abnoInfoFile = fs.readFileSync(`${env.EXTRACTED_ASSETS_DIR}/text/EN/EN_AbnormalityCards.txt`);
+    const abnoInfoJs = xmlParser.parse(abnoInfoFile);
+    const sephirahs = abnoInfoJs['AbnormalityCardsRoot']['Sephirah'];
+    const abnoCards: any = [];
+    for (const sephirah of sephirahs) {
+        abnoCards.push(...sephirah['AbnormalityCard']);
+    }
+
+    try {
+        const emotionCards = abnoPageJs['EmotionCardXmlRoot']['EmotionCard'];
+        for (const emotionCard of emotionCards) {
+            // get description for abno page
+            const pageId = emotionCard['Name'];
+            const abnoInfo = abnoCards.find((x: { [x: string]: any; }) => x['@_ID'] === pageId);
+            if (abnoInfo === undefined) {
+                console.error(`Cannot find description for abnormality page ${pageId}`, inspect(abnoPageJs, { depth: null }));
+            }
+            const dialogue = [];
+            for (const line of abnoInfo['Dialogues']['Dialogue']) {
+                dialogue.push(line['#text']);
+            }
+
+            // construct abno page
+            const page: AbnoPage = {
+                id: pageId,
+                name: abnoInfo['CardName'],
+                description: abnoInfo['AbilityDesc'],
+                sephirah: emotionCard['Sephirah'][0],
+                targetType: AbnoTargetType[emotionCard['TargetType'] as keyof typeof AbnoTargetType],
+                emotion: Emotion[emotionCard['State'] as keyof typeof Emotion],
+                emotionLevel: emotionCard['EmotionLevel'],
+                emotionRate: emotionCard['EmotionRate'],
+                level: emotionCard['Level'],
+                abnormality: abnoInfo['Abnormality'],
+                flavorText: abnoInfo['FlaborText'],
+                dialogue,
+                image: pageId
+            };
+            pages.push(page);
+        }
+    } catch (error) {
+        console.error('error converting XML to abno page info:', error);
+        console.log('abno page xml', inspect(abnoPageJs, { depth: null }));
+        throw error;
+    }
+
+    return pages;
+};
+
 export const getCardsFromXml = (xml: string) => {
     const ALWAYS_ARRAY_TAGS = ['Card', 'Behaviour', 'Desc'];
     const xmlParser = new XMLParser({
@@ -323,10 +384,7 @@ export const getCardsFromXml = (xml: string) => {
                 'utf-8'
             );
             const cardNamesJs = xmlParser.parse(cardNamesXml);
-            const cardDescs: any[] =
-                cardNamesJs['BattleCardDescRoot']['cardDescList'][
-                'BattleCardDesc'
-                ];
+            const cardDescs: any[] = cardNamesJs['BattleCardDescRoot']['cardDescList']['BattleCardDesc'];
             const cardDesc = cardDescs.find((desc) => desc['@_ID'] === cardId);
             if (cardDesc === undefined) {
                 // may be a Korean-only card

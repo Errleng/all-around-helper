@@ -14,12 +14,16 @@ import {
     DialogueCategory,
     Sound,
     SoundCategory,
+    AbnoPage,
+    AbnoTargetType,
+    Emotion,
 } from './types';
 import {
     getCardsFromXml,
     getDialoguesFromCombatXml,
     getDialoguesFromStoryXml,
     getBooksFromXml,
+    getAbnoPagesFromXml,
 } from './utils';
 
 export const resetDatabase = async () => {
@@ -27,19 +31,25 @@ export const resetDatabase = async () => {
 
     // delete everything
     await dbClient.connect();
+    await dbClient.query('DROP TABLE IF EXISTS abno_pages');
     await dbClient.query('DROP TABLE IF EXISTS dice');
     await dbClient.query('DROP TABLE IF EXISTS cards');
     await dbClient.query('DROP TABLE IF EXISTS dialogues');
     await dbClient.query('DROP TABLE IF EXISTS books');
     await dbClient.query('DROP TABLE IF EXISTS sounds');
+    await dbClient.query('DROP TYPE IF EXISTS abno_target_type');
     await dbClient.query('DROP TYPE IF EXISTS card_rarity');
     await dbClient.query('DROP TYPE IF EXISTS card_range');
     await dbClient.query('DROP TYPE IF EXISTS dice_type');
     await dbClient.query('DROP TYPE IF EXISTS dice_category');
     await dbClient.query('DROP TYPE IF EXISTS dialogue_category');
+    await dbClient.query('DROP TYPE IF EXISTS emotion');
     await dbClient.query('DROP TYPE IF EXISTS sound_category');
 
     // create everything
+    await dbClient.query(
+        "CREATE TYPE abno_target_type AS ENUM ('SelectOne', 'All', 'AllIncludingEnemy')"
+    );
     await dbClient.query(
         "CREATE TYPE card_rarity AS ENUM ('Common', 'Uncommon', 'Rare', 'Unique')"
     );
@@ -56,8 +66,26 @@ export const resetDatabase = async () => {
         "CREATE TYPE dialogue_category AS ENUM ('Combat', 'Story')"
     );
     await dbClient.query(
+        "CREATE TYPE emotion AS ENUM ('Positive', 'Negative')"
+    );
+    await dbClient.query(
         "CREATE TYPE sound_category AS ENUM ('SoundEffect', 'Music', 'Dialogue')"
     );
+    await dbClient.query(`CREATE TABLE IF NOT EXISTS abno_pages (
+        id              text primary key,
+        name            text,
+        description     text,
+        sephirah        text,
+        target_type     abno_target_type,
+        emotion         emotion,
+        emotion_level   int,
+        emotion_rate    int,
+        level           int,
+        abnormality     text,
+        flavorText      text,
+        dialogue        text,
+        image           text
+    )`);
     await dbClient.query(`CREATE TABLE IF NOT EXISTS cards (
         id              int primary key,
         name            text,
@@ -159,6 +187,48 @@ const insertSounds = async (dbClient: Client) => {
     }
 };
 
+const insertAbnoPages = async (dbClient: Client, textFilesPath: string) => {
+    const abnoInfoFiles = fs
+        .readdirSync(textFilesPath)
+        .filter((name) => /EmotionCard_.*/.test(name))
+        .filter((name) => !name.includes('EmotionCard_enemy'));
+    console.log('abno page info files:', abnoInfoFiles);
+
+    const abnoPages: AbnoPage[] = [];
+    for (const fileName of abnoInfoFiles) {
+        const xml = fs.readFileSync(`${textFilesPath}/${fileName}`, 'utf-8');
+        const xmlPages = getAbnoPagesFromXml(xml);
+        xmlPages.forEach((page) => abnoPages.push(page));
+    }
+
+    const uniqueAbnoPages: AbnoPage[] = [];
+    for (const page of abnoPages) {
+        if (uniqueAbnoPages.some((existing) => existing.id === page.id)) {
+            console.warn(
+                `found page that already exists: ${page.name} (${page.id})`
+            );
+            continue;
+        }
+        uniqueAbnoPages.push(page);
+    }
+
+    for (const page of uniqueAbnoPages) {
+        // replace Unicode characters with closest equivalents
+        let filteredName = '';
+        for (let i = 0; i < page.name.length; i++) {
+            const charCode = page.name.charCodeAt(i);
+            if (charCode in UNICODE_ASCII_MAP) {
+                filteredName += UNICODE_ASCII_MAP[charCode];
+            } else {
+                filteredName += page.name.charAt(i);
+            }
+        }
+        page.name = filteredName;
+
+        await insertAbnoPageIntoDatabase(dbClient, page);
+    }
+};
+
 const insertCards = async (dbClient: Client, textFilesPath: string) => {
     const cardInfoFiles = fs
         .readdirSync(textFilesPath)
@@ -211,12 +281,43 @@ const populateDatabase = async () => {
     const dbClient = new Client(POSTGRES_CONNECTION);
     await dbClient.connect();
 
+    await insertAbnoPages(dbClient, textFilesPath);
     await insertCards(dbClient, textFilesPath);
     await insertBooks(dbClient, englishFilesPath);
     await insertDialogues(dbClient, englishFilesPath);
     await insertSounds(dbClient);
 
     await dbClient.end();
+};
+
+export const getAbnoPagesFromDatabase = async (name: string) => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    const pages = await dbClient.query(
+        'SELECT * FROM abno_pages WHERE LOWER(name) LIKE LOWER($1)',
+        [`%${name}%`]
+    );
+
+    const matches: AbnoPage[] = [];
+    for (const row of pages.rows) {
+        const page: AbnoPage = {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+            sephirah: row.sephirah,
+            targetType: row.targetType,
+            emotion: row.emotion,
+            emotionLevel: row.emotionLevel,
+            emotionRate: row.emotionRate,
+            level: row.level,
+            abnormality: row.abnormality,
+            flavorText: row.flavorText,
+            dialogue: JSON.parse(row.dialogue),
+            image: row.image
+        };
+        matches.push(page);
+    }
+    return matches;
 };
 
 export const getCardsFromDatabase = async (cardName: string) => {
@@ -335,6 +436,27 @@ export const getSoundsFromDatabase = async () => {
 
     await dbClient.end();
     return result;
+};
+
+const insertAbnoPageIntoDatabase = async (dbClient: Client, page: AbnoPage) => {
+    await dbClient.query(
+        'INSERT INTO abno_pages VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+        [
+            page.id,
+            page.name,
+            page.description,
+            page.sephirah,
+            AbnoTargetType[page.targetType],
+            Emotion[page.emotion],
+            page.emotionLevel,
+            page.emotionRate,
+            page.level,
+            page.abnormality,
+            page.flavorText,
+            JSON.stringify(page.dialogue),
+            page.image,
+        ]
+    );
 };
 
 const insertCardIntoDatabase = async (dbClient: Client, card: Card) => {

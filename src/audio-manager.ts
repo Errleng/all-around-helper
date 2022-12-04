@@ -10,10 +10,15 @@ const player: AudioPlayer = createAudioPlayer({
         noSubscriber: NoSubscriberBehavior.Pause
     }
 });
-player.on('error', (e) => {
+player.on('error', (e: any) => {
     console.error('Audio player encountered error:', e);
 });
 player.on(AudioPlayerStatus.Idle, () => {
+    if (playQueue.length === 0) {
+        console.debug('Found empty queue on idle');
+        startDisconnectTimer();
+        return;
+    }
     const currentAudio = playQueue[0];
     if (!currentAudio.loop) {
         playQueue.shift();

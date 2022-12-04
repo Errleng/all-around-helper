@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "tsc",
+        "build": "tsc --build --verbose",
         "start": "npm run build && node dist/index.js",
         "deploy-commands": "npm run build && node dist/deploy-commands.js",
         "populate-database": "npm run build && node dist/populate-database.js",

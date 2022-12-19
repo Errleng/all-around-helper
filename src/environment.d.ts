@@ -19,7 +19,9 @@ declare global {
             PGHOST: string;
             PGPORT: number;
             EXTRACTED_ASSETS_DIR: string;
+            FAKEYOU_USERNAME: string;
+            FAKEYOU_PASSWORD: string;
         }
     }
 }
-export {};
+export { };

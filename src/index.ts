@@ -9,7 +9,7 @@ const token = env.BOT_TOKEN;
 export const commandsDict = new Collection<string, Command>();
 
 // Create a new client instance
-export const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES] });
+export const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_VOICE_STATES] });
 
 const setupCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);

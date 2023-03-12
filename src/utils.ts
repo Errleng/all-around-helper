@@ -722,3 +722,22 @@ export const getCanvasLines = (
 export const cardImageToPath = (artName: string) => {
     return `${env.EXTRACTED_ASSETS_DIR}/raw-images/card-artwork/${artName}.png`;
 };
+
+export const splitIntoPhrases = (text: string, maxLen: number): string[] => {
+    const phrases: string[] = [];
+    const words = text.split(' ');
+    let phrase = '';
+    for (const word of words) {
+        if (phrase.length + word.length + 1 > maxLen) {
+            phrases.push(phrase);
+            phrase = word;
+        } else {
+            if (phrase.length > 0) {
+                phrase += ' ';
+            }
+            phrase += word;
+        }
+    }
+    phrases.push(phrase);
+    return phrases;
+};

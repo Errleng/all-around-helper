@@ -139,3 +139,4 @@ export const DICE_IMAGE_MAP: Record<string, string> = {
 // Discord
 export const MAX_ACTION_ROWS = 5;
 export const MAX_BUTTONS_PER_ROW = 5;
+export const MAX_STATUS_CHARS = 128;

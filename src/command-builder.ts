@@ -136,8 +136,8 @@ function buildSearchCommand<T extends SearchItem>(
 
                     let embeds: (APIEmbed | JSONEncodable<APIEmbed>)[] = [];
                     if (message.embeds && message.embeds.length > 1) {
-                        embeds = message.embeds;
-                        message.embeds = undefined;
+                        embeds = message.embeds.slice(1);
+                        message.embeds = [message.embeds[0]];
                     }
 
                     await i.editReply(message);

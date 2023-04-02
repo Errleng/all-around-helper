@@ -26,14 +26,16 @@ const command = buildSearchCommand(
                 .setRequired(false)
         ),
     async (options: CommandOptions) => {
-        let books = await getBooksFromDatabase();
-        books = books.filter((book) => book.descs.join('').length > 0);
-
         const query = options.getString('name');
         if (query === null) {
+            const books = await getBooksFromDatabase();
             const randomBook = books[Math.floor(Math.random() * books.length)];
             return [randomBook];
         }
+
+        let books = await getBooksFromDatabase(query);
+        books = books.filter((book) => book.descs.join('').length > 0);
+
         return books;
     },
     (item: Book) => {

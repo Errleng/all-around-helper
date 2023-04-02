@@ -48,7 +48,8 @@ const command = buildSearchCommand(
             const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
             return [randomSound];
         }
-        return sounds;
+        const foundSounds = sounds.filter((x) => path.parse(x.fileName).name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+        return foundSounds;
     },
     (item: Sound) => {
         return new ButtonBuilder()

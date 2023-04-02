@@ -52,7 +52,6 @@ const command = buildSearchCommand(
 
 const makeEmbeds = (book: Book,) => {
     const MAX_EMBED_LENGTH = 4096 - 100;
-    const randomColor = Math.floor(Math.random() * 16777215).toString(16);
     const embeds = [];
 
     let currentText = '';
@@ -71,7 +70,7 @@ const makeEmbeds = (book: Book,) => {
             );
 
             const embed = new EmbedBuilder()
-                .setColor(randomColor as ColorResolvable)
+                .setColor('Random')
                 .setTitle(`${book.name} (${book.id})`)
                 .setDescription(currentText);
             embeds.push(embed);

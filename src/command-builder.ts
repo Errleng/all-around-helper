@@ -6,6 +6,8 @@ import {
     ComponentType,
     ChatInputCommandInteraction,
     BaseMessageOptions,
+    APIEmbed,
+    JSONEncodable,
 } from 'discord.js';
 import { Command, CommandOptions } from './types';
 import { onCommandInteraction } from './utils';
@@ -131,7 +133,28 @@ function buildSearchCommand<T extends SearchItem>(
 
                 try {
                     const message = await buildMessage(item, interaction);
+
+                    let embeds: (APIEmbed | JSONEncodable<APIEmbed>)[] = [];
+                    if (message.embeds && message.embeds.length > 1) {
+                        embeds = message.embeds;
+                        message.embeds = undefined;
+                    }
+
                     await i.editReply(message);
+
+                    let firstReply = true;
+                    for (const embed of embeds) {
+                        if (firstReply) {
+                            firstReply = false;
+                            await i.reply({
+                                embeds: [embed],
+                            });
+                        } else {
+                            await i.followUp({
+                                embeds: [embed],
+                            });
+                        }
+                    }
                 } catch (e) {
                     if (e instanceof Error) {
                         console.error('Error while replying', e.message, e);

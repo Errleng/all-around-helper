@@ -66,7 +66,7 @@ const command = buildSearchCommand(
     (item: Video) => {
         return new ButtonBuilder()
             .setCustomId(item.id)
-            .setLabel(`${item.title} (${item.duration})`)
+            .setLabel(`${item.title.slice(0, 73)} (${item.duration})`)
             .setStyle(ButtonStyle.Secondary);
     },
     async (item: Video, int: ChatInputCommandInteraction) => {

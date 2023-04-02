@@ -15,7 +15,7 @@ import {
     EMOTION_COLOR_MAP,
 } from '../constants';
 import path from 'path';
-import { buildSearchCommand } from './command-builder';
+import { buildSearchCommand } from '../command-builder';
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()

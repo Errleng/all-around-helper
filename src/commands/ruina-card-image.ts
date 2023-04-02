@@ -15,7 +15,7 @@ import {
 } from '../constants';
 import { Card, CommandOptions, DiceCategory, DiceType } from '../types';
 import { getCanvasLines, getTextHeight, cardImageToPath } from '../utils';
-import { buildSearchCommand } from './command-builder';
+import { buildSearchCommand } from '../command-builder';
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()

@@ -9,7 +9,7 @@ import {
 } from 'discord.js';
 import { Book, CommandOptions } from '../types';
 import { getBooksFromDatabase } from '../database';
-import { buildSearchCommand } from './command-builder';
+import { buildSearchCommand } from '../command-builder';
 
 
 const command = buildSearchCommand(

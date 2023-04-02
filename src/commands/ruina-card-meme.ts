@@ -10,7 +10,7 @@ import { Card, CommandOptions } from '../types';
 import { getCanvasLines, cardImageToPath } from '../utils';
 import * as Canvas from 'canvas';
 import { getCardsFromDatabase } from '../database';
-import { buildSearchCommand } from './command-builder';
+import { buildSearchCommand } from '../command-builder';
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()

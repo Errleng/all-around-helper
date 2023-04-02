@@ -7,12 +7,12 @@ import {
     ChatInputCommandInteraction,
     BaseMessageOptions,
 } from 'discord.js';
-import { Command, CommandOptions } from '../types';
-import { onCommandInteraction } from '../utils';
+import { Command, CommandOptions } from './types';
+import { onCommandInteraction } from './utils';
 import {
     MAX_ACTION_ROWS,
     MAX_BUTTONS_PER_ROW,
-} from '../constants';
+} from './constants';
 
 interface SearchItem {
     id: string | number;

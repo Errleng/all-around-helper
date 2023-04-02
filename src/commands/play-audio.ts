@@ -10,7 +10,7 @@ import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel } f
 import ytsr, { Video } from 'ytsr';
 import ytdl from 'ytdl-core';
 import { enqueueAudio, getQueue, startConnection, startPlaying } from '../audio-manager';
-import { buildSearchCommand } from './command-builder';
+import { buildSearchCommand } from '../command-builder';
 
 const downloadAudio = async (video: Video): Promise<string> => {
     if (!fs.existsSync(DOWNLOADED_AUDIO_PATH)) {

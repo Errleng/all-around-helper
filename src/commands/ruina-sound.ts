@@ -6,7 +6,7 @@ import path from 'path';
 import { client } from '../index';
 import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, } from '@discordjs/voice';
 import { startConnection, startPlaying } from '../audio-manager';
-import { buildSearchCommand } from './command-builder';
+import { buildSearchCommand } from '../command-builder';
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()

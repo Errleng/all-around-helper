@@ -14,14 +14,16 @@ import { buildSearchCommand } from '../command-builder';
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()
-        .setName('ruina-abno-item')
-        .setDescription('Replies with the Library of Ruina abnormality item')
+        .setName('ruina-book')
+        .setDescription(
+            'Replies with a random Library of Ruina book description'
+        )
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption((option) =>
             option
                 .setName('name')
-                .setDescription('The name of the abnormality item')
-                .setRequired(true)
+                .setDescription('Name of the book to search for')
+                .setRequired(false)
         ),
     async (options: CommandOptions) => {
         let books = await getBooksFromDatabase();

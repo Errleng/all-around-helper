@@ -6,13 +6,13 @@ import {
 import { COMMANDS_PATH, env } from './constants';
 import { importDefaults } from './utils';
 import { Command } from './types';
-import { ApplicationCommand, Client, Intents } from 'discord.js';
+import { ApplicationCommand, Client, IntentsBitField } from 'discord.js';
 
 const token = env.BOT_TOKEN;
 const clientId = env.CLIENT_ID;
 const guildId = env.TEST_SERVER_ID;
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({ intents: [IntentsBitField.Flags.Guilds] });
 client.login(token);
 const registerCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);
@@ -51,7 +51,7 @@ const registerCommands = async () => {
             }
             console.log(
                 `Updated permissions for command "${command.name}" in guild "${guild.name}"`,
-                command.defaultPermission
+                command.defaultMemberPermissions
             );
         });
     });

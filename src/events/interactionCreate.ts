@@ -1,6 +1,6 @@
 import { commandsDict } from '../index';
 import { ClientEvent } from '../types';
-import { CacheType, Interaction } from 'discord.js';
+import { ApplicationCommandType, CacheType, Interaction } from 'discord.js';
 
 const event: ClientEvent = {
     name: 'interactionCreate',
@@ -12,7 +12,11 @@ const event: ClientEvent = {
             if (!command) return;
 
             try {
-                await command.execute(interaction);
+                if (interaction.commandType == ApplicationCommandType.ChatInput) {
+                    await command.execute(interaction);
+                } else {
+                    console.error(`Do not know how to handle command type: ${interaction.commandType}`);
+                }
             } catch (error) {
                 console.error(
                     `Error executing command ${interaction.commandName}`,

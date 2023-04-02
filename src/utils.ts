@@ -29,6 +29,7 @@ import {
 } from './constants';
 import { XMLParser } from 'fast-xml-parser';
 import { inspect } from 'util';
+import * as Canvas from 'canvas';
 
 let useCount = 0;
 setInterval(() => {
@@ -141,11 +142,11 @@ export const getSyntaxForColor: (color: ColorResolvable) => string = (
     color
 ) => {
     switch (color) {
-        case 'YELLOW':
+        case 'Yellow':
             return 'fix';
-        case 'ORANGE':
+        case 'Orange':
             return 'css';
-        case 'BLUE':
+        case 'Blue':
             return 'ini';
         default:
             return '';
@@ -686,7 +687,7 @@ export const getBooksFromXml = (xml: string) => {
 };
 
 export const getTextHeight = (
-    context: CanvasRenderingContext2D,
+    context: Canvas.CanvasRenderingContext2D,
     text: string
 ) => {
     const metrics = context.measureText(text);
@@ -694,7 +695,7 @@ export const getTextHeight = (
 };
 
 export const getCanvasLines = (
-    ctx: CanvasRenderingContext2D,
+    ctx: Canvas.CanvasRenderingContext2D,
     text: string,
     maxWidth: number
 ) => {

@@ -1,23 +1,58 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import * as Canvas from 'canvas';
 import {
-    ButtonInteraction,
-    CommandInteraction,
-    CommandInteractionOptionResolver,
-    MessageActionRow,
-    MessageAttachment,
-    MessageButton,
+    AttachmentBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ChatInputCommandInteraction,
+    PermissionFlagsBits,
 } from 'discord.js';
 import { getCardsFromDatabase } from '../database';
 import {
     ASSETS_PATH,
     DICE_CATEGORY_COLOR_MAP,
     DICE_IMAGE_MAP,
-    MAX_ACTION_ROWS,
-    MAX_BUTTONS_PER_ROW,
 } from '../constants';
-import { Card, Command, DiceCategory, DiceType } from '../types';
-import { getCanvasLines, getTextHeight, onCommandInteraction, cardImageToPath } from '../utils';
+import { Card, CommandOptions, DiceCategory, DiceType } from '../types';
+import { getCanvasLines, getTextHeight, cardImageToPath } from '../utils';
+import { buildSearchCommand } from './command-builder';
+
+const command = buildSearchCommand(
+    new SlashCommandBuilder()
+        .setName('ruina-card-image')
+        .setDescription('Generates an image of a Library of Ruina card')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+        .addStringOption((option) =>
+            option
+                .setName('cardname')
+                .setDescription('The name of the card')
+                .setRequired(true)
+        ),
+    async (options: CommandOptions) => {
+        const query = options.getString('cardname');
+        if (query === null) {
+            throw new Error(`Invalid query: ${query}`);
+        }
+        const cards = await getCardsFromDatabase(query);
+        return cards;
+    },
+    (item: Card) => {
+        return new ButtonBuilder()
+            .setCustomId(item.id.toString())
+            .setLabel(`${item.cost}💡 ${item.name} (${item.id})`)
+            .setStyle(ButtonStyle.Secondary);
+    },
+    async (item: Card, int: ChatInputCommandInteraction) => {
+        const cardArt = new AttachmentBuilder(cardImageToPath(item.image));
+        // resize card dice image
+        const canvas = Canvas.createCanvas(410, 310);
+        const finalCanvas = await drawCardDice(canvas, item);
+        const cardDice = new AttachmentBuilder(finalCanvas.toBuffer());
+        return {
+            files: [cardArt, cardDice],
+        };
+    }
+);
 
 const drawCardDice: (
     canvas: Canvas.Canvas,
@@ -69,9 +104,8 @@ const drawCardDice: (
 
         const diceCategory = DiceCategory[dice.category];
         const diceType = DiceType[dice.type];
-        const diceImagePath = `${ASSETS_PATH}/images/${
-            DICE_IMAGE_MAP[`${diceCategory}${diceType}`]
-        }`;
+        const diceImagePath = `${ASSETS_PATH}/images/${DICE_IMAGE_MAP[`${diceCategory}${diceType}`]
+            }`;
         const diceArt = await Canvas.loadImage(diceImagePath);
         context.drawImage(diceArt, 10, diceY + diceIconHeight * i, 50, 50);
 
@@ -118,151 +152,4 @@ const drawCardDice: (
     }
 };
 
-const command: Command = {
-    data: new SlashCommandBuilder()
-        .setName('ruina-card-image')
-        .setDescription('Generates an image of a Library of Ruina card')
-        .setDefaultPermission(true)
-        .addStringOption((option) =>
-            option
-                .setName('cardname')
-                .setDescription('The name of the card')
-                .setRequired(true)
-        ),
-    async execute(interaction: CommandInteraction) {
-        try {
-            onCommandInteraction(interaction);
-        } catch (e) {
-            if (e instanceof Error) {
-                await interaction.reply({
-                    content: e.message,
-                    ephemeral: true,
-                });
-            } else {
-                console.error('Error in command interaction hook!', e);
-                await interaction.reply({
-                    content: 'An error occurred while validating this command',
-                    ephemeral: true,
-                });
-            }
-            return;
-        }
-
-        const cardName = interaction.options.getString('cardname');
-        if (!cardName) {
-            console.error('Invalid card name', cardName);
-            await interaction.reply({
-                content: 'Card name is invalid',
-                ephemeral: true,
-            });
-            return;
-        }
-
-        let cards: Card[] | null = null;
-        try {
-            cards = await getCardsFromDatabase(cardName);
-        } catch (e) {
-            if (e instanceof Error) {
-                console.error('Error while getting card data', e.message, e);
-            } else {
-                console.error('Error while getting card data', e);
-            }
-            await interaction.reply({
-                content: `An error occurred while trying to search for the card "${cardName}"`,
-                ephemeral: true,
-            });
-            return;
-        }
-
-        if (!cards || cards.length === 0) {
-            console.error('No cards found:', cards);
-            await interaction.reply({
-                content: `No results for card named "${cardName}"`,
-                ephemeral: true,
-            });
-            return;
-        }
-
-        const rows: MessageActionRow[] = [];
-        let currentRow = new MessageActionRow();
-        for (const card of cards) {
-            if (currentRow.components.length === MAX_BUTTONS_PER_ROW) {
-                rows.push(currentRow);
-                currentRow = new MessageActionRow();
-            }
-            if (rows.length === MAX_ACTION_ROWS) {
-                break;
-            }
-            currentRow.addComponents(
-                new MessageButton()
-                    .setCustomId(card.id.toString())
-                    .setLabel(`${card.cost}💡 ${card.name} (${card.id})`)
-                    .setStyle('SECONDARY')
-            );
-        }
-        if (currentRow.components.length > 0) {
-            rows.push(currentRow);
-        }
-
-        await interaction.reply({
-            content: 'Search results',
-            components: rows,
-            ephemeral: false,
-        });
-
-        const interactionMessage = await interaction.fetchReply();
-
-        const collector = interaction.channel?.createMessageComponentCollector({
-            filter: (i: ButtonInteraction) => i.user.id === interaction.user.id,
-            componentType: 'BUTTON',
-            message: interactionMessage,
-            max: 1,
-            maxUsers: 1,
-            time: 60000,
-        });
-
-        collector?.on('collect', async (i: ButtonInteraction) => {
-            await i.deferReply();
-
-            if (!cards) {
-                console.error(
-                    `Card list is invalid: ${cards} when responding to button`
-                );
-                return;
-            }
-
-            const cardId = Number(i.customId);
-            const card = cards.find((c) => c.id === cardId);
-            if (!card) {
-                console.error(
-                    `Could not find card with id ${cardId} in card list: ${cards}`
-                );
-                return;
-            }
-
-            await interaction.editReply({
-                content: `Displaying ${card.name} (${card.id})`,
-                components: [],
-            });
-
-            const cardArt = new MessageAttachment(cardImageToPath(card.image), 'card-art.png');
-            // resize card dice image
-            const canvas = Canvas.createCanvas(410, 310);
-            const finalCanvas = await drawCardDice(canvas, card);
-            const cardDice = new MessageAttachment(
-                finalCanvas.toBuffer(),
-                'card-dice.png'
-            );
-            await i.editReply({
-                files: [cardArt, cardDice],
-            });
-        });
-
-        collector?.on('end', (collected) => {
-            if (collected.size === 0) {
-                interaction.deleteReply();
-            }
-        });
-    },
-};
 export default command;

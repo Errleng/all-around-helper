@@ -1,10 +1,12 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { AudioResource } from '@discordjs/voice';
-import { CacheType, CommandInteraction, Interaction } from 'discord.js';
+import { CacheType, ChatInputCommandInteraction, CommandInteractionOptionResolver, Interaction } from 'discord.js';
+
+export type CommandOptions = Omit<CommandInteractionOptionResolver<CacheType>, 'getMessage' | 'getFocused'>;
 
 export interface Command {
     data: Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
-    execute: (interaction: CommandInteraction) => Promise<void>;
+    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
 
 export interface ClientEvent {

@@ -1,4 +1,4 @@
-import { Client, Collection, Intents } from 'discord.js';
+import { Client, Collection, IntentsBitField } from 'discord.js';
 import { COMMANDS_PATH, env, EVENTS_PATH } from './constants';
 import { mainLoop } from './poller';
 import { ClientEvent, Command } from './types';
@@ -9,7 +9,7 @@ const token = env.BOT_TOKEN;
 export const commandsDict = new Collection<string, Command>();
 
 // Create a new client instance
-export const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_VOICE_STATES] });
+export const client = new Client({ intents: [IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildVoiceStates] });
 
 const setupCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);

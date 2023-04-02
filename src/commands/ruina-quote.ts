@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction, BufferResolvable } from 'discord.js';
+import { BufferResolvable, PermissionFlagsBits, ChatInputCommandInteraction } from 'discord.js';
 import { onCommandInteraction } from '../utils';
 import { Command, DialogueCategory } from '../types';
 import { getDialoguesFromDatabase, getSoundsFromDatabase } from '../database';
@@ -8,18 +8,18 @@ const command: Command = {
     data: new SlashCommandBuilder()
         .setName('ruina-quote')
         .setDescription('Replies with a random Library of Ruina quote')
-        .setDefaultPermission(true)
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption((option) =>
             option
                 .setName('category')
                 .setDescription('Dialogue category')
                 .setRequired(false)
-                .addChoices([
-                    ['Story', DialogueCategory[DialogueCategory.Story]],
-                    ['Combat', DialogueCategory[DialogueCategory.Combat]],
-                ])
+                .addChoices(
+                    { name: 'Story', value: DialogueCategory[DialogueCategory.Story] },
+                    { name: 'Combat', value: DialogueCategory[DialogueCategory.Combat] },
+                )
         ),
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         try {
             onCommandInteraction(interaction);
         } catch (e) {
@@ -51,7 +51,7 @@ const command: Command = {
         if (selectedCategory !== null) {
             const filterCategory =
                 DialogueCategory[
-                    selectedCategory as keyof typeof DialogueCategory
+                selectedCategory as keyof typeof DialogueCategory
                 ];
             dialogues = dialogues.filter(
                 (dialogue) => dialogue.category === filterCategory

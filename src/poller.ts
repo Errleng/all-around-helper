@@ -1,7 +1,6 @@
 import { client } from './index';
 import { env, MAX_STATUS_CHARS } from './constants';
-import { GuildMember } from 'discord.js';
-import { ActivityTypes } from 'discord.js/typings/enums';
+import { ActivityType, GuildMember } from 'discord.js';
 import { splitIntoPhrases } from './utils';
 
 type ChannelStates = Map<string, Map<string, Map<string, GuildMember>>>;
@@ -37,7 +36,10 @@ const listenChannelState = async () => {
         const channels = await guild.channels.fetch();
         const newChannelMap = new Map();
         for (const channel of channels.values()) {
-            if (channel.isVoice()) {
+            if (channel === null) {
+                continue;
+            }
+            if (channel.isVoiceBased()) {
                 const newMemberMap = new Map();
                 for (const member of channel.members.values()) {
                     newMemberMap.set(member.id, member);
@@ -72,7 +74,7 @@ const listenChannelState = async () => {
 let showActivityMessageTimer: NodeJS.Timer | null = null;
 const showActivityMessage = (phrases: string[], curIdx: number, delayBetween: number) => {
     const newMsg = phrases[curIdx] ?? '';
-    client.user?.setActivity(newMsg, { type: ActivityTypes.PLAYING });
+    client.user?.setActivity(newMsg, { type: ActivityType.Playing });
 
     if (phrases.length > 1) {
         showActivityMessageTimer = setTimeout(() => showActivityMessage(phrases, (curIdx + 1) % phrases.length, delayBetween), delayBetween);

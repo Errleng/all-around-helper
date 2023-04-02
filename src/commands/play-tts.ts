@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInteraction, GuildMember } from 'discord.js';
+import { ChatInputCommandInteraction, GuildMember, PermissionFlagsBits } from 'discord.js';
 import { onCommandInteraction } from '../utils';
 import { Command } from '../types';
 import * as googleTTS from 'google-tts-api';
@@ -22,7 +22,7 @@ const command: Command = {
         .setDescription(
             'Text-to-speech'
         )
-        .setDefaultPermission(true)
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages | PermissionFlagsBits.SendTTSMessages)
         .addStringOption((option) =>
             option
                 .setName('text')
@@ -34,12 +34,12 @@ const command: Command = {
                 .setName('generator')
                 .setRequired(true)
                 .setDescription('TTS generator')
-                .addChoices([
-                    ['Google Translate', 'google'],
-                    ['FakeYou', 'fakeyou'],
-                ])
+                .addChoices(
+                    { name: 'Google Translate', value: 'google' },
+                    { name: 'FakeYou', value: 'fakeyou' },
+                )
         ),
-    async execute(interaction: CommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         try {
             onCommandInteraction(interaction);
         } catch (e) {

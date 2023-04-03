@@ -10,9 +10,23 @@ const player: AudioPlayer = createAudioPlayer({
         noSubscriber: NoSubscriberBehavior.Pause
     }
 });
+
 player.on('error', (e: any) => {
     console.error('Audio player encountered error:', e);
 });
+
+player.on(AudioPlayerStatus.Buffering, () => {
+    console.debug('audio player is buffering');
+});
+
+player.on(AudioPlayerStatus.Paused, () => {
+    console.debug('audio player is paused');
+});
+
+player.on(AudioPlayerStatus.AutoPaused, () => {
+    console.debug('audio player is autopaused');
+});
+
 player.on(AudioPlayerStatus.Idle, () => {
     if (playQueue.length === 0) {
         console.debug('Found empty queue on idle');

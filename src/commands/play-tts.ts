@@ -6,15 +6,15 @@ import * as googleTTS from 'google-tts-api';
 import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel } from '@discordjs/voice';
 import { enqueueAudio, getQueue, startConnection, startPlaying } from '../audio-manager';
 import { env } from '../constants';
-const FakeYou = require('fakeyou.js');
+// const FakeYou = require('fakeyou.js');
 
-const FAKEYOU_MAX_CHARS = 150;
-const fy = new FakeYou.Client({
-    usernameOrEmail: env.FAKEYOU_USERNAME,
-    password: env.FAKEYOU_PASSWORD
-});
+// const FAKEYOU_MAX_CHARS = 150;
+// const fy = new FakeYou.Client({
+//     usernameOrEmail: env.FAKEYOU_USERNAME,
+//     password: env.FAKEYOU_PASSWORD
+// });
 
-fy.start();
+// fy.start();
 
 const command: Command = {
     data: new SlashCommandBuilder()
@@ -36,7 +36,7 @@ const command: Command = {
                 .setDescription('TTS generator')
                 .addChoices(
                     { name: 'Google Translate', value: 'google' },
-                    { name: 'FakeYou', value: 'fakeyou' },
+                    // { name: 'FakeYou', value: 'fakeyou' },
                 )
         ),
     async execute(interaction: ChatInputCommandInteraction) {
@@ -89,43 +89,44 @@ const command: Command = {
                 slow: false,
                 host: 'https://translate.google.com'
             }).map((x) => x.url);
-        } else if (generator === 'fakeyou') {
-            const models = fy.searchModel('Shaggy Rogers (Matthew Lillard)');
-            console.debug('FakeYou models:', models);
-            const model = models.first();
-            if (model) {
-                const words = text.split(' ');
-                if (words === null) {
-                    console.error(`Splitting "${text}" into words failed`);
-                    return;
-                }
-
-                const textSections = [];
-                let curSection = '';
-                for (const word of words) {
-                    if (curSection.length + word.length >= FAKEYOU_MAX_CHARS) {
-                        textSections.push(curSection);
-                        curSection = '';
-                    }
-                    if (curSection.length > 0) {
-                        curSection += ' ';
-                    }
-                    curSection += word;
-                }
-                if (curSection.length > 0) {
-                    textSections.push(curSection);
-                }
-                console.debug('FakeYou text sections:', textSections);
-
-                for (const section of textSections) {
-                    const res = await model.request(section);
-                    urls.push(`https://storage.googleapis.com/vocodes-public${res.audioPath}`);
-                }
-            } else {
-                console.warn('Could not find FakeYou model');
-                return;
-            }
         }
+        // else if (generator === 'fakeyou') {
+        //     const models = fy.searchModel('Shaggy Rogers (Matthew Lillard)');
+        //     console.debug('FakeYou models:', models);
+        //     const model = models.first();
+        //     if (model) {
+        //         const words = text.split(' ');
+        //         if (words === null) {
+        //             console.error(`Splitting "${text}" into words failed`);
+        //             return;
+        //         }
+
+        //         const textSections = [];
+        //         let curSection = '';
+        //         for (const word of words) {
+        //             if (curSection.length + word.length >= FAKEYOU_MAX_CHARS) {
+        //                 textSections.push(curSection);
+        //                 curSection = '';
+        //             }
+        //             if (curSection.length > 0) {
+        //                 curSection += ' ';
+        //             }
+        //             curSection += word;
+        //         }
+        //         if (curSection.length > 0) {
+        //             textSections.push(curSection);
+        //         }
+        //         console.debug('FakeYou text sections:', textSections);
+
+        //         for (const section of textSections) {
+        //             const res = await model.request(section);
+        //             urls.push(`https://storage.googleapis.com/vocodes-public${res.audioPath}`);
+        //         }
+        //     } else {
+        //         console.warn('Could not find FakeYou model');
+        //         return;
+        //     }
+        // }
         console.debug('TTS URLs:', urls);
 
         const playQueue = getQueue();

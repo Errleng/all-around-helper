@@ -6,7 +6,7 @@ import { onCommandInteraction } from '../utils';
 
 const command: Command = {
     data: new SlashCommandBuilder()
-        .setName('silence-knave')
+        .setName('leave')
         .setDescription('Stops all sound players and clears all queues')
         .setDefaultPermission(true)
     ,

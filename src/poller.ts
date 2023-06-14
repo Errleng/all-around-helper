@@ -89,7 +89,7 @@ const changeActivityMessage = async () => {
     const users = await guild?.members.fetch();
     const user = users?.filter((x) => x?.user.bot !== true)?.random();
 
-    const name = `${user?.user.username ?? 'NAME'}`;
+    const name = `${user?.displayName ?? 'NAME'}`;
     const messages = [
         'All-Around Helper is well versed in all manner of cleaning. It was designed to take care of a family household all on its own.',
         'When it was discovered that All-Around Helper contained a critical error, it had already been sent to a household.',

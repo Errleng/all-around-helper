@@ -306,7 +306,7 @@ export const NAME_POOL = [
     'Yum - yum',
     'Yuri',
 ];
-export const STATUS_MESSAGES = [
+const ALL_AROUND_HELPER_MESSAGES = [
     'All-Around Helper is well versed in all manner of cleaning. It was designed to take care of a family household all on its own.',
     'When it was discovered that All-Around Helper contained a critical error, it had already been sent to a household.',
     'Blood covered the whole floor, screams echoed, people were running away, and All-Around Helper was gleefully learning the concept of “cleaning”.',
@@ -324,5 +324,26 @@ export const STATUS_MESSAGES = [
     'I will help you with my wide selection of tools.',
     'All-Around Helper spins around NAME, however, <name> continues to concentrate on the task at hand.',
     '<name> has decided against buying a robot vacuum cleaner after seeing All-Around Helper.',
-    '<name> only hopes that All-Around Helper’s “cleaning” mode is never activated.'
+    '<name> only hopes that All-Around Helper’s “cleaning” mode is never activated.',
+];
+const WHITENIGHT_MESSAGES = [
+    '<name>, repented, enters the Containment Unit, following His divine light.',
+    'What maketh thee hesitate? I work miracles here.',
+    'WhiteNight looks like a fetus, but it seems as though He needs no nannying.',
+    'When the bell struck twelve, the facility was swallowed by a blinding light. It was the light of redemption for His disciples.',
+    'Only silence fills the air around WhiteNight.',
+    'WhiteNight absorbs all light and sound which surrounds Him.',
+    'WhiteNight came here to redeem you and lead the new world.',
+    'WhiteNight arrived from the end of the world, and He walks towards the beginning of the new world.',
+    '<name>, why art thou in fear? I shall not leave thee until I have completed my mission.”',
+    '<name>, be not frightened. I am thy savior and I shall be with thee.',
+    'I heard thy cries. Thy heart reached me. <name>, thou hath called me.',
+    'Do not fear, for I am with thee. Thou shalt not leave until I permit thee.',
+    'Do not trust time. I shall guide thee.',
+    'Do not deny me. Why dost thou doubt me when I am in front of thine eyes?',
+    'My story is nowhere, unknown to all.'
+];
+export const STATUS_MESSAGES = [
+    ...ALL_AROUND_HELPER_MESSAGES,
+    ...WHITENIGHT_MESSAGES
 ];

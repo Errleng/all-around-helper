@@ -107,6 +107,7 @@ export enum CardRange {
     FarArea,
     FarAreaEach,
     Instance,
+    Special
 }
 
 export enum CardRarity {

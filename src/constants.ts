@@ -98,6 +98,7 @@ export const TIPHERETH_CARD_RANGE_RAW_DATA_MAP: Record<string, CardRange> = {
     'Mass (individual)': CardRange.FarAreaEach,
     'Mass (summation)': CardRange.FarArea,
     Immediate: CardRange.Instance,
+    Special: CardRange.Special,
 };
 export const TIPHERETH_CARD_RANGE_CUSTOM_EMOJI_MAP: Record<string, string> = {
     Melee: '<:rangemelee:940003205922824245>',
@@ -121,6 +122,7 @@ export const CARD_RANGE_IMAGE_MAP: Record<CardRange, string> = {
     [CardRange.FarArea]: 'range-mass.png',
     [CardRange.FarAreaEach]: 'range-mass.png',
     [CardRange.Instance]: 'range-instant.png',
+    [CardRange.Special]: 'range-melee.png',
 };
 
 export const DICE_IMAGE_MAP: Record<string, string> = {

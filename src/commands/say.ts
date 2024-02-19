@@ -18,11 +18,11 @@ import { env } from '../constants';
 
 const command: Command = {
     data: new SlashCommandBuilder()
-        .setName('play-tts')
+        .setName('say')
         .setDescription(
-            'Text-to-speech'
+            'Say something in the current voice channel'
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages | PermissionFlagsBits.SendTTSMessages)
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages | PermissionFlagsBits.Speak)
         .addStringOption((option) =>
             option
                 .setName('text')

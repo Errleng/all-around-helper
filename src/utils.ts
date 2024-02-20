@@ -47,6 +47,14 @@ setInterval(() => {
     allChannelUseCount = 0;
 }, 1000 * 60 * 60);
 
+export const isWithinRateLimit = () => {
+    return useCount < env.REQUEST_LIMIT;
+};
+
+export const updateRateLimit = () => {
+    ++useCount;
+};
+
 export const onCommandInteraction = (interaction: CommandInteraction) => {
     console.log(
         `${interaction.createdAt} - Command ${interaction.commandName

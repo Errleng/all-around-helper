@@ -1,8 +1,8 @@
 import { Client } from 'discord.js';
-import {isWithinRateLimit, updateRateLimit} from './utils';
+import { isWithinRateLimit, updateRateLimit } from './utils';
+const pos = require('pos');
 
 export const startSoFarListener = (client: Client) => {
-    const triggerWords = new Set(['never', 'ever', 'forever']);
     const allowedGuilds = new Set(['922275863637135370', '770488167312785410']);
 
     client.on('messageCreate', (message) => {
@@ -12,17 +12,27 @@ export const startSoFarListener = (client: Client) => {
             return;
         }
 
-        const words = message.content.match(/\b(\w+)\b/g);
-        if (words === null) {
-            return;
+        const words = new pos.Lexer().lex(message.content);
+        const tagger = new pos.Tagger();
+        const taggedWords = tagger.tag(words);
+
+        let hasTriggerWord = false;
+        let hasSuperlative = false;
+        for (const token of taggedWords) {
+            const word = token[0];
+            const tag = token[1];
+            if (tag === 'JJS') {
+                hasSuperlative = true;
+                break;
+            }
         }
 
-        for (const word of words) {
-            if (triggerWords.has(word.toLowerCase())) {
-                updateRateLimit();
-                message.reply('*so far*');
-                return;
-            }
+        if (hasTriggerWord || (hasSuperlative && Math.random() < 0.05)) {
+            updateRateLimit();
+            message.reply('*so far*');
+        }
+        if (!hasSuperlative) {
+            console.debug('no superlatives in', taggedWords);
         }
     });
 };

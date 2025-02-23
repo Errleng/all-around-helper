@@ -1,8 +1,7 @@
-import { REST } from '@discordjs/rest';
 import {
-    RESTPostAPIApplicationCommandsJSONBody,
-    Routes,
-} from 'discord-api-types/v9';
+    REST,
+} from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v10';
 import { COMMANDS_PATH, env } from './constants';
 import { importDefaults } from './utils';
 import { Command } from './types';
@@ -16,7 +15,7 @@ const client = new Client({ intents: [IntentsBitField.Flags.Guilds] });
 client.login(token);
 const registerCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);
-    const commandsJson: RESTPostAPIApplicationCommandsJSONBody[] = commands.map(
+    const commandsJson = commands.map(
         (command) => command.data.toJSON()
     );
 

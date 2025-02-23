@@ -8,9 +8,10 @@ import fs from 'fs';
 import { DOWNLOADED_AUDIO_PATH } from '../constants';
 import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel } from '@discordjs/voice';
 import ytsr, { Video } from 'ytsr';
-import ytdl from 'ytdl-core';
 import { enqueueAudio, getQueue, startConnection, startPlaying } from '../audio-manager';
 import { buildSearchCommand } from '../command-builder';
+
+const ytdl = require('@distube/ytdl-core')
 
 const downloadAudio = async (video: Video): Promise<string> => {
     if (!fs.existsSync(DOWNLOADED_AUDIO_PATH)) {
@@ -22,7 +23,8 @@ const downloadAudio = async (video: Video): Promise<string> => {
     return new Promise((resolve, reject) => {
         try {
             const stream = ytdl(video.url, { filter: 'audioonly' });
-            const fileStream = stream.pipe(fs.createWriteStream(filePath));
+            const writableStream = fs.createWriteStream(filePath) as unknown as NodeJS.WritableStream;
+            const fileStream = stream.pipe(writableStream);
             fileStream.on('finish', () => {
                 resolve(filePath);
             });
@@ -94,7 +96,7 @@ const command = buildSearchCommand(
                 highWaterMark: 1 << 62,
                 liveBuffer: 1 << 62,
                 dlChunkSize: 0,
-                quality: 'lowestaudio',
+                quality: 'highestaudio',
             });
             return createAudioResource(stream);
         };

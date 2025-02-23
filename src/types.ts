@@ -1,11 +1,11 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandOptionsOnlyBuilder } from '@discordjs/builders';
 import { AudioResource } from '@discordjs/voice';
 import { CacheType, ChatInputCommandInteraction, CommandInteractionOptionResolver, Interaction } from 'discord.js';
 
 export type CommandOptions = Omit<CommandInteractionOptionResolver<CacheType>, 'getMessage' | 'getFocused'>;
 
 export interface Command {
-    data: Omit<SlashCommandBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
+    data: Omit<SlashCommandOptionsOnlyBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
 

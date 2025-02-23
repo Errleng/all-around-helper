@@ -1,6 +1,6 @@
 import { client } from './index';
-import { env, MAX_STATUS_CHARS, NAME_POOL, STATUS_MESSAGES } from './constants';
-import { ActivityType, GuildMember } from 'discord.js';
+import { env, ALLOWED_GUILD_IDS, MAX_STATUS_CHARS, NAME_POOL, STATUS_MESSAGES } from './constants';
+import { ActivityType, GuildMember, OAuth2Guild } from 'discord.js';
 import { splitIntoPhrases } from './utils';
 
 type ChannelStates = Map<string, Map<string, Map<string, GuildMember>>>;
@@ -26,13 +26,30 @@ const channelStateChanged = (oldState: ChannelStates, newState: ChannelStates) =
     return false;
 };
 
+const logGuildMembers = async(guilds: OAuth2Guild[]) => {
+    const guildValues = await Promise.all(guilds.map(async (x) => await x.fetch()));
+    const scanString = (await Promise.all(guildValues.map(async (guild) => {
+        const members = await guild.members.fetch();
+        const usernames = members.map((x) => x.user.username);
+        const membersStr = usernames.slice(0, 100).join(', ');
+        const guildStr = `(${members.size}) ${guild.name}\n${membersStr}`;
+        return guildStr;
+    }))).join('\n');
+    console.debug(scanString);
+};
+
 let channelStates: ChannelStates = new Map();
 const listenChannelState = async () => {
     const user = await client.users.fetch(env.DEV_USER);
     const guilds = await client.guilds.fetch();
     const newChannelStates: ChannelStates = new Map();
+
     for (const authGuild of guilds.values()) {
         const guild = await authGuild.fetch();
+        if (!ALLOWED_GUILD_IDS.includes(guild.id)) {
+            console.debug(`Found guild that is not allowed! ${guild.id} ${guild.name}`);
+            // guild.leave();
+        }
         const channels = await guild.channels.fetch();
         const newChannelMap = new Map();
         for (const channel of channels.values()) {
@@ -49,6 +66,9 @@ const listenChannelState = async () => {
         }
         newChannelStates.set(guild.name, newChannelMap);
     }
+
+    logGuildMembers(Array.from(guilds.values()));
+
 
     if (channelStateChanged(channelStates, newChannelStates)) {
         const channelStateStr = Array.from(newChannelStates).map(([guildName, channels]) =>
@@ -71,7 +91,7 @@ const listenChannelState = async () => {
     channelStates = newChannelStates;
 };
 
-let showActivityMessageTimer: NodeJS.Timer | null = null;
+let showActivityMessageTimer: NodeJS.Timeout | null = null;
 const showActivityMessage = (phrases: string[], curIdx: number, delayBetween: number) => {
     const newMsg = phrases[curIdx] ?? '';
     client.user?.setActivity(newMsg, { type: ActivityType.Playing });

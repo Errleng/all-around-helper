@@ -6,6 +6,7 @@ export const startSoFarListener = (client: Client) => {
     const allowedGuilds = new Set(['922275863637135370', '770488167312785410']);
 
     client.on('messageCreate', (message) => {
+        console.debug(`${message.guild?.name} > ${message.author.username}: ${message.content}`);
         if (message.author.bot
             || !allowedGuilds.has(message.guildId ?? '')
             || !isWithinRateLimit()) {
@@ -32,7 +33,7 @@ export const startSoFarListener = (client: Client) => {
             message.reply('*so far*');
         }
         if (!hasSuperlative) {
-            console.debug('no superlatives in', taggedWords);
+            // console.debug('no superlatives in', taggedWords);
         }
     });
 };

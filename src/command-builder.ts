@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandOptionsOnlyBuilder } from '@discordjs/builders';
 import {
     ButtonInteraction,
     ActionRowBuilder,
@@ -21,7 +21,7 @@ interface SearchItem {
 }
 
 function buildSearchCommand<T extends SearchItem>(
-    commandInfo: Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">,
+    commandInfo: Omit<SlashCommandOptionsOnlyBuilder, "addSubcommand" | "addSubcommandGroup">,
     getSearchResults: (options: CommandOptions) => Promise<T[]>,
     buildButton: (item: T) => ButtonBuilder,
     buildMessage: (item: T, int: ChatInputCommandInteraction) => Promise<BaseMessageOptions>,

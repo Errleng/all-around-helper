@@ -1,5 +1,5 @@
-import { Client, Collection, IntentsBitField } from 'discord.js';
-import { COMMANDS_PATH, env, EVENTS_PATH } from './constants';
+import { Client, Collection, IntentsBitField, GatewayIntentBits } from 'discord.js';
+import { ALLOWED_GUILD_IDS, COMMANDS_PATH, env, EVENTS_PATH } from './constants';
 import { startSoFarListener } from './listener';
 import { mainLoop } from './poller';
 import { ClientEvent, Command } from './types';
@@ -10,7 +10,12 @@ const token = env.BOT_TOKEN;
 export const commandsDict = new Collection<string, Command>();
 
 // Create a new client instance
-export const client = new Client({ intents: [IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildVoiceStates, IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.MessageContent, IntentsBitField.Flags.DirectMessages] });
+const intents = [IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildPresences, IntentsBitField.Flags.GuildInvites, IntentsBitField.Flags.GuildVoiceStates, IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.MessageContent, IntentsBitField.Flags.DirectMessages];
+export const client = new Client({
+    intents: Object.keys(GatewayIntentBits).map((a: string) => {
+        return GatewayIntentBits[a as keyof typeof GatewayIntentBits];
+    })
+});
 
 const setupCommands = async () => {
     const commands = await importDefaults<Command>(COMMANDS_PATH);

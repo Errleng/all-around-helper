@@ -43,9 +43,9 @@ const command: Command = {
                     const user = await client.users.fetch(sale.creatorId);
                     const gameData = await getGameData(sale.gameId);
                     if (gameData === null) {
-                        return `${sale.gameId} added by ${user.username}`;
+                        return `${sale.gameId}`;
                     }
-                    return `${gameData[sale.gameId].data.name} (${sale.gameId}) added by ${user.username}`;
+                    return `${gameData[sale.gameId].data.name} (${sale.gameId})`;
                 }),
             )
         ).join("\n");

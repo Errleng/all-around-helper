@@ -1,11 +1,19 @@
-import { SlashCommandOptionsOnlyBuilder } from '@discordjs/builders';
-import { AudioResource } from '@discordjs/voice';
-import { CacheType, ChatInputCommandInteraction, CommandInteractionOptionResolver, Interaction } from 'discord.js';
+import { SlashCommandOptionsOnlyBuilder } from "@discordjs/builders";
+import { AudioResource } from "@discordjs/voice";
+import {
+    CacheType,
+    ChatInputCommandInteraction,
+    CommandInteractionOptionResolver,
+    Interaction,
+} from "discord.js";
 
-export type CommandOptions = Omit<CommandInteractionOptionResolver<CacheType>, 'getMessage' | 'getFocused'>;
+export type CommandOptions = Omit<
+    CommandInteractionOptionResolver<CacheType>,
+    "getMessage" | "getFocused"
+>;
 
 export interface Command {
-    data: Omit<SlashCommandOptionsOnlyBuilder, 'addSubcommand' | 'addSubcommandGroup'>;
+    data: Omit<SlashCommandOptionsOnlyBuilder, "addSubcommand" | "addSubcommandGroup">;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
 }
 
@@ -87,7 +95,7 @@ export interface SteamSale {
 export enum AbnoTargetType {
     SelectOne,
     All,
-    AllIncludingEnemy
+    AllIncludingEnemy,
 }
 
 export enum DiceCategory {
@@ -106,7 +114,7 @@ export enum DiceType {
 
 export enum Emotion {
     Positive,
-    Negative
+    Negative,
 }
 
 export enum CardRange {
@@ -115,7 +123,7 @@ export enum CardRange {
     FarArea,
     FarAreaEach,
     Instance,
-    Special
+    Special,
 }
 
 export enum CardRarity {

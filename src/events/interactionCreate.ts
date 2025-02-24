@@ -1,9 +1,9 @@
-import { commandsDict } from '../index';
-import { ClientEvent } from '../types';
-import { ApplicationCommandType, CacheType, Interaction } from 'discord.js';
+import { commandsDict } from "../index";
+import { ClientEvent } from "../types";
+import { ApplicationCommandType, CacheType, Interaction } from "discord.js";
 
 const event: ClientEvent = {
-    name: 'interactionCreate',
+    name: "interactionCreate",
     once: false,
     async execute(interaction: Interaction<CacheType>) {
         if (interaction.isCommand()) {
@@ -15,15 +15,14 @@ const event: ClientEvent = {
                 if (interaction.commandType == ApplicationCommandType.ChatInput) {
                     await command.execute(interaction);
                 } else {
-                    console.error(`Do not know how to handle command type: ${interaction.commandType}`);
+                    console.error(
+                        `Do not know how to handle command type: ${interaction.commandType}`,
+                    );
                 }
             } catch (error) {
-                console.error(
-                    `Error executing command ${interaction.commandName}`,
-                    error
-                );
+                console.error(`Error executing command ${interaction.commandName}`, error);
                 await interaction.reply({
-                    content: 'There was an error while executing this command!',
+                    content: "There was an error while executing this command!",
                     ephemeral: true,
                 });
             }

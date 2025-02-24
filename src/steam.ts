@@ -1,12 +1,16 @@
-import { client } from './index';
-import { TextChannel } from 'discord.js';
-import { insertSteamSaleIntoDatabase, getSteamSalesFromDatabase, deleteSteamSaleFromDatabase } from './database';
-import { Client } from 'pg';
-import { POSTGRES_CONNECTION } from './constants';
+import { client } from "./index";
+import { TextChannel } from "discord.js";
+import {
+    insertSteamSaleIntoDatabase,
+    getSteamSalesFromDatabase,
+    deleteSteamSaleFromDatabase,
+} from "./database";
+import { Client } from "pg";
+import { POSTGRES_CONNECTION } from "./constants";
 
 const DISCOUNT_PERCENT_THRESHOLD = 30;
 const MINUTES_AGO_THRESHOLD = 60 * 24 * 3;
-const BROADCAST_CHANNEL_IDS = ['923943170318925874', '713993861197987840'];
+const BROADCAST_CHANNEL_IDS = ["923943170318925874", "713993861197987840"];
 
 export const getGameData = async (gameId: string) => {
     const url = `https://store.steampowered.com/api/appdetails?appids=${gameId}`;
@@ -17,7 +21,7 @@ export const getGameData = async (gameId: string) => {
         return null;
     }
     return responseBody;
-}
+};
 
 export const addSteamGame = async (gameId: string, creatorId: string) => {
     const gameData = await getGameData(gameId);
@@ -38,7 +42,7 @@ export const addSteamGame = async (gameId: string, creatorId: string) => {
     });
     await dbClient.end();
     return true;
-}
+};
 
 export const removeSteamGame = async (gameId: string) => {
     const dbClient = new Client(POSTGRES_CONNECTION);
@@ -46,7 +50,7 @@ export const removeSteamGame = async (gameId: string) => {
     await deleteSteamSaleFromDatabase(dbClient, gameId);
     await dbClient.end();
     return true;
-}
+};
 
 export const checkSteamSales = async () => {
     const steamSales = await getSteamSalesFromDatabase();
@@ -61,13 +65,27 @@ export const checkSteamSales = async () => {
         const lastChecked = new Date(sale.lastChecked);
         const msAgo = new Date().getTime() - lastChecked.getTime();
         const minutesAgo = msAgo / (1000 * 60);
-        console.log(sale.gameId, 'discount %', discountPercentage, 'last checked', minutesAgo, 'minutes ago', sale.lastChecked);
-        if (discountPercentage >= DISCOUNT_PERCENT_THRESHOLD && minutesAgo >= MINUTES_AGO_THRESHOLD) {
+        console.log(
+            `Steam game ${sale.gameId} has discount ${discountPercentage}% and previous discount ${sale.discountPercentage}%, last checked ${minutesAgo} minutes ago at ${sale.lastChecked}`,
+        );
+        if (minutesAgo < MINUTES_AGO_THRESHOLD) {
+            continue;
+        }
+        if (discountPercentage === sale.discountPercentage) {
+            // The sale is the same as before
+            continue;
+        }
+        // Update game information
+        await addSteamGame(sale.gameId, sale.creatorId);
+
+        if (discountPercentage >= DISCOUNT_PERCENT_THRESHOLD) {
+            // The sale is big enough to post about
             for (const channelId of BROADCAST_CHANNEL_IDS) {
-                const channel = await client.channels.fetch(channelId) as TextChannel;
-                channel?.send(`**${discountPercentage}% OFF** - ${data.name} - https://store.steampowered.com/app/${sale.gameId}`);
+                const channel = (await client.channels.fetch(channelId)) as TextChannel;
+                channel?.send(
+                    `**${discountPercentage}% OFF** - ${data.name} - https://store.steampowered.com/app/${sale.gameId}`,
+                );
             }
-            await addSteamGame(sale.gameId, sale.creatorId);
         }
     }
 };

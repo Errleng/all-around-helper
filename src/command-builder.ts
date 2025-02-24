@@ -1,4 +1,4 @@
-import { SlashCommandOptionsOnlyBuilder } from '@discordjs/builders';
+import { SlashCommandOptionsOnlyBuilder } from "@discordjs/builders";
 import {
     ButtonInteraction,
     ActionRowBuilder,
@@ -8,13 +8,10 @@ import {
     BaseMessageOptions,
     APIEmbed,
     JSONEncodable,
-} from 'discord.js';
-import { Command, CommandOptions } from './types';
-import { onCommandInteraction } from './utils';
-import {
-    MAX_ACTION_ROWS,
-    MAX_BUTTONS_PER_ROW,
-} from './constants';
+} from "discord.js";
+import { Command, CommandOptions } from "./types";
+import { onCommandInteraction } from "./utils";
+import { MAX_ACTION_ROWS, MAX_BUTTONS_PER_ROW } from "./constants";
 
 interface SearchItem {
     id: string | number;
@@ -38,9 +35,9 @@ function buildSearchCommand<T extends SearchItem>(
                         ephemeral: true,
                     });
                 } else {
-                    console.error('Error in command interaction hook!', e);
+                    console.error("Error in command interaction hook!", e);
                     await interaction.reply({
-                        content: 'An error occurred while validating this command',
+                        content: "An error occurred while validating this command",
                         ephemeral: true,
                     });
                 }
@@ -52,9 +49,9 @@ function buildSearchCommand<T extends SearchItem>(
                 results = await getSearchResults(interaction.options);
             } catch (e) {
                 if (e instanceof Error) {
-                    console.error('Error while searching', e.message, e);
+                    console.error("Error while searching", e.message, e);
                 } else {
-                    console.error('Unknown error while searching', e);
+                    console.error("Unknown error while searching", e);
                 }
                 await interaction.reply({
                     content: `An error occurred while trying to search with options: ${interaction.options.resolved}`,
@@ -64,7 +61,7 @@ function buildSearchCommand<T extends SearchItem>(
             }
 
             if (!results || results.length === 0) {
-                console.error('No results found:', results);
+                console.error("No results found:", results);
                 await interaction.reply({
                     content: `No results`,
                     ephemeral: true,
@@ -82,16 +79,14 @@ function buildSearchCommand<T extends SearchItem>(
                 if (rows.length === MAX_ACTION_ROWS) {
                     break;
                 }
-                currentRow.addComponents(
-                    buildButton(result)
-                );
+                currentRow.addComponents(buildButton(result));
             }
             if (currentRow.components.length > 0) {
                 rows.push(currentRow);
             }
 
             await interaction.reply({
-                content: 'Search results',
+                content: "Search results",
                 components: rows,
                 ephemeral: false,
             });
@@ -107,13 +102,11 @@ function buildSearchCommand<T extends SearchItem>(
                 time: 60000,
             });
 
-            collector?.on('collect', async (i: ButtonInteraction) => {
+            collector?.on("collect", async (i: ButtonInteraction) => {
                 await i.deferReply();
 
                 if (!results) {
-                    console.error(
-                        `Results are invalid: ${results} when responding to button`
-                    );
+                    console.error(`Results are invalid: ${results} when responding to button`);
                     return;
                 }
 
@@ -121,7 +114,7 @@ function buildSearchCommand<T extends SearchItem>(
                 const item = results.find((c) => c.id.toString() === itemId);
                 if (!item) {
                     console.error(
-                        `Could not find result with id ${itemId} in results list: ${results}`
+                        `Could not find result with id ${itemId} in results list: ${results}`,
                     );
                     return;
                 }
@@ -149,24 +142,24 @@ function buildSearchCommand<T extends SearchItem>(
                     }
                 } catch (e) {
                     if (e instanceof Error) {
-                        console.error('Error while replying', e.message, e);
+                        console.error("Error while replying", e.message, e);
                     } else {
-                        console.error('Unknown error while replying', e);
+                        console.error("Unknown error while replying", e);
                     }
                     await i.editReply({
-                        content: 'Error occurred',
+                        content: "Error occurred",
                     });
                     return;
                 }
             });
 
-            collector?.on('end', (collected) => {
+            collector?.on("end", (collected) => {
                 if (collected.size === 0) {
                     interaction.deleteReply();
                 }
             });
         },
     };
-};
+}
 
 export { buildSearchCommand };

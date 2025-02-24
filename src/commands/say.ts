@@ -1,11 +1,15 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { ChatInputCommandInteraction, GuildMember, PermissionFlagsBits } from 'discord.js';
-import { onCommandInteraction } from '../utils';
-import { Command } from '../types';
-import * as googleTTS from 'google-tts-api';
-import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel } from '@discordjs/voice';
-import { enqueueAudio, getQueue, startConnection, startPlaying } from '../audio-manager';
-import { env } from '../constants';
+import { SlashCommandBuilder } from "@discordjs/builders";
+import { ChatInputCommandInteraction, GuildMember, PermissionFlagsBits } from "discord.js";
+import { onCommandInteraction } from "../utils";
+import { Command } from "../types";
+import * as googleTTS from "google-tts-api";
+import {
+    createAudioResource,
+    DiscordGatewayAdapterCreator,
+    joinVoiceChannel,
+} from "@discordjs/voice";
+import { enqueueAudio, getQueue, startConnection, startPlaying } from "../audio-manager";
+import { env } from "../constants";
 // const FakeYou = require('fakeyou.js');
 
 // const FAKEYOU_MAX_CHARS = 150;
@@ -18,26 +22,21 @@ import { env } from '../constants';
 
 const command: Command = {
     data: new SlashCommandBuilder()
-        .setName('say')
-        .setDescription(
-            'Say something in the current voice channel'
-        )
+        .setName("say")
+        .setDescription("Say something in the current voice channel")
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages | PermissionFlagsBits.Speak)
         .addStringOption((option) =>
-            option
-                .setName('text')
-                .setRequired(true)
-                .setDescription('Text')
+            option.setName("text").setRequired(true).setDescription("Text"),
         )
         .addStringOption((option) =>
             option
-                .setName('generator')
+                .setName("generator")
                 .setRequired(true)
-                .setDescription('TTS generator')
+                .setDescription("TTS generator")
                 .addChoices(
-                    { name: 'Google Translate', value: 'google' },
+                    { name: "Google Translate", value: "google" },
                     // { name: 'FakeYou', value: 'fakeyou' },
-                )
+                ),
         ),
     async execute(interaction: ChatInputCommandInteraction) {
         try {
@@ -49,46 +48,48 @@ const command: Command = {
                     ephemeral: true,
                 });
             } else {
-                console.error('Error in command interaction hook!', e);
+                console.error("Error in command interaction hook!", e);
                 await interaction.reply({
-                    content: 'An error occurred while validating this command',
+                    content: "An error occurred while validating this command",
                     ephemeral: true,
                 });
             }
             return;
         }
         await interaction.reply({
-            content: 'Trying to queue TTS',
+            content: "Trying to queue TTS",
             ephemeral: true,
         });
 
-        const text = interaction.options.getString('text')!;
-        const generator = interaction.options.getString('generator')!;
+        const text = interaction.options.getString("text")!;
+        const generator = interaction.options.getString("generator")!;
 
         if (interaction.guild === null) {
-            console.error('Interaction guild is null', interaction);
+            console.error("Interaction guild is null", interaction);
             return;
         }
         const guildMember = interaction.member as GuildMember;
         if (guildMember.voice.channelId === null) {
-            console.error('Voice channel is', interaction);
+            console.error("Voice channel is", interaction);
             return;
         }
 
         const connection = joinVoiceChannel({
             channelId: guildMember.voice.channelId,
             guildId: interaction.guild.id,
-            adapterCreator: interaction.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
+            adapterCreator: interaction.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
         });
         startConnection(connection);
 
         let urls: string[] = [];
-        if (generator === 'google') {
-            urls = googleTTS.getAllAudioUrls(text, {
-                lang: 'en',
-                slow: false,
-                host: 'https://translate.google.com'
-            }).map((x) => x.url);
+        if (generator === "google") {
+            urls = googleTTS
+                .getAllAudioUrls(text, {
+                    lang: "en",
+                    slow: false,
+                    host: "https://translate.google.com",
+                })
+                .map((x) => x.url);
         }
         // else if (generator === 'fakeyou') {
         //     const models = fy.searchModel('Shaggy Rogers (Matthew Lillard)');
@@ -127,7 +128,7 @@ const command: Command = {
         //         return;
         //     }
         // }
-        console.debug('TTS URLs:', urls);
+        console.debug("TTS URLs:", urls);
 
         const playQueue = getQueue();
 
@@ -137,7 +138,7 @@ const command: Command = {
                     const resource = createAudioResource(url, { inlineVolume: true });
                     return resource;
                 };
-                enqueueAudio('TTS', createResource);
+                enqueueAudio("TTS", createResource);
             }
             return;
         }
@@ -149,9 +150,9 @@ const command: Command = {
                 return resource;
             };
             if (i === 0) {
-                startPlaying('TTS', createResource);
+                startPlaying("TTS", createResource);
             } else {
-                enqueueAudio('TTS', createResource);
+                enqueueAudio("TTS", createResource);
             }
         }
     },

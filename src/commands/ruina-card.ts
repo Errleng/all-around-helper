@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandBuilder } from "@discordjs/builders";
 import {
     AttachmentBuilder,
     ButtonBuilder,
@@ -7,10 +7,10 @@ import {
     ColorResolvable,
     EmbedBuilder,
     PermissionFlagsBits,
-} from 'discord.js';
-import { Card, CommandOptions, DiceCategory, DiceType } from '../types';
-import { getSyntaxForColor, cardImageToPath } from '../utils';
-import { getCardsFromDatabase } from '../database';
+} from "discord.js";
+import { Card, CommandOptions, DiceCategory, DiceType } from "../types";
+import { getSyntaxForColor, cardImageToPath } from "../utils";
+import { getCardsFromDatabase } from "../database";
 import {
     ASSETS_PATH,
     CARD_RANGE_IMAGE_MAP,
@@ -19,23 +19,20 @@ import {
     DICE_TYPE_CUSTOM_EMOJI_MAP,
     DICE_TYPE_EMOJI_MAP,
     env,
-} from '../constants';
-import path from 'path';
-import { buildSearchCommand } from '../command-builder';
+} from "../constants";
+import path from "path";
+import { buildSearchCommand } from "../command-builder";
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()
-        .setName('ruina-card')
-        .setDescription('Replies with the Library of Ruina card')
+        .setName("ruina-card")
+        .setDescription("Replies with the Library of Ruina card")
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption((option) =>
-            option
-                .setName('cardname')
-                .setDescription('The name of the card')
-                .setRequired(true)
+            option.setName("cardname").setDescription("The name of the card").setRequired(true),
         ),
     async (options: CommandOptions) => {
-        const query = options.getString('cardname');
+        const query = options.getString("cardname");
         if (query === null) {
             throw new Error(`Invalid query: ${query}`);
         }
@@ -51,12 +48,10 @@ const command = buildSearchCommand(
     async (item: Card, int: ChatInputCommandInteraction) => {
         const cardImage = new AttachmentBuilder(cardImageToPath(item.image));
         const cardRangeImageName = CARD_RANGE_IMAGE_MAP[item.range];
-        const cardRangeImage = new AttachmentBuilder(
-            `${ASSETS_PATH}/images/${cardRangeImageName}`
-        );
+        const cardRangeImage = new AttachmentBuilder(`${ASSETS_PATH}/images/${cardRangeImageName}`);
         let text = item.description;
         if (text.length > 0) {
-            text += '\n';
+            text += "\n";
         }
 
         item.dice.forEach((dice) => {
@@ -69,11 +64,7 @@ const command = buildSearchCommand(
             }
             const diceRoll = `${dice.minRoll}-${dice.maxRoll}`;
             if (env.USE_COLORED_TEXT) {
-                text += `\`\`\`${getSyntaxForColor(
-                    DICE_CATEGORY_COLOR_MAP[
-                    dice.category
-                    ] as ColorResolvable
-                )}\n${diceEmoji}[${diceRoll}]\t${dice.description}\n\`\`\``;
+                text += `\`\`\`${getSyntaxForColor(DICE_CATEGORY_COLOR_MAP[dice.category] as ColorResolvable)}\n${diceEmoji}[${diceRoll}]\t${dice.description}\n\`\`\``;
             } else {
                 text += `\n${diceEmoji}\t\t\t**${diceRoll}**\t\t\t${dice.description}`;
             }
@@ -90,7 +81,7 @@ const command = buildSearchCommand(
             embeds: [embed],
             files: [cardImage, cardRangeImage],
         };
-    }
+    },
 );
 
 export default command;

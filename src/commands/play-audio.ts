@@ -1,17 +1,24 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandBuilder } from "@discordjs/builders";
 import {
     ButtonBuilder,
-    ButtonStyle, ChatInputCommandInteraction, GuildMember, PermissionFlagsBits,
-} from 'discord.js';
-import { CommandOptions } from '../types';
-import fs from 'fs';
-import { DOWNLOADED_AUDIO_PATH } from '../constants';
-import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel } from '@discordjs/voice';
-import ytsr, { Video } from 'ytsr';
-import { enqueueAudio, getQueue, startConnection, startPlaying } from '../audio-manager';
-import { buildSearchCommand } from '../command-builder';
+    ButtonStyle,
+    ChatInputCommandInteraction,
+    GuildMember,
+    PermissionFlagsBits,
+} from "discord.js";
+import { CommandOptions } from "../types";
+import fs from "fs";
+import { DOWNLOADED_AUDIO_PATH } from "../constants";
+import {
+    createAudioResource,
+    DiscordGatewayAdapterCreator,
+    joinVoiceChannel,
+} from "@discordjs/voice";
+import ytsr, { Video } from "ytsr";
+import { enqueueAudio, getQueue, startConnection, startPlaying } from "../audio-manager";
+import { buildSearchCommand } from "../command-builder";
 
-const ytdl = require('@distube/ytdl-core')
+const ytdl = require("@distube/ytdl-core");
 
 const downloadAudio = async (video: Video): Promise<string> => {
     if (!fs.existsSync(DOWNLOADED_AUDIO_PATH)) {
@@ -22,14 +29,19 @@ const downloadAudio = async (video: Video): Promise<string> => {
 
     return new Promise((resolve, reject) => {
         try {
-            const stream = ytdl(video.url, { filter: 'audioonly' });
-            const writableStream = fs.createWriteStream(filePath) as unknown as NodeJS.WritableStream;
+            const stream = ytdl(video.url, { filter: "audioonly" });
+            const writableStream = fs.createWriteStream(
+                filePath,
+            ) as unknown as NodeJS.WritableStream;
             const fileStream = stream.pipe(writableStream);
-            fileStream.on('finish', () => {
+            fileStream.on("finish", () => {
                 resolve(filePath);
             });
         } catch (e) {
-            console.error(`Error while downloading audio for video ${video.id} - ${video.url} - ${video.title} (${video.duration}):`, e);
+            console.error(
+                `Error while downloading audio for video ${video.id} - ${video.url} - ${video.title} (${video.duration}):`,
+                e,
+            );
             reject();
         }
     });
@@ -37,20 +49,15 @@ const downloadAudio = async (video: Video): Promise<string> => {
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()
-        .setName('play')
-        .setDescription(
-            'Play audio'
-        )
+        .setName("play")
+        .setDescription("Play audio")
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages | PermissionFlagsBits.Speak)
         .addStringOption((option) =>
-            option
-                .setName('query')
-                .setRequired(true)
-                .setDescription('Query or URL')
+            option.setName("query").setRequired(true).setDescription("Query or URL"),
         ),
 
     async (options: CommandOptions) => {
-        const query = options.getString('query')!;
+        const query = options.getString("query")!;
 
         if (query === null) {
             throw new Error(`Invalid query: ${query}`);
@@ -59,7 +66,7 @@ const command = buildSearchCommand(
         const videos: Video[] = [];
         const results = await ytsr(query, { limit: 5 });
         for (const item of results.items) {
-            if (item.type === 'video') {
+            if (item.type === "video") {
                 videos.push(item as Video);
             }
         }
@@ -73,30 +80,30 @@ const command = buildSearchCommand(
     },
     async (item: Video, int: ChatInputCommandInteraction) => {
         if (int.guild === null) {
-            throw new Error('Could not get server');
+            throw new Error("Could not get server");
         }
 
         const guildMember = int.member as GuildMember;
         if (guildMember.voice.channelId === null) {
-            console.error('Voice channel is', int);
-            throw new Error('Could not get voice channel');
+            console.error("Voice channel is", int);
+            throw new Error("Could not get voice channel");
         }
 
         const connection = joinVoiceChannel({
             channelId: guildMember.voice.channelId,
             guildId: int.guild.id,
-            adapterCreator: int.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
+            adapterCreator: int.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
         });
         startConnection(connection);
 
         const playQueue = getQueue();
         const createResource = () => {
             const stream = ytdl(item.url, {
-                filter: 'audioonly',
+                filter: "audioonly",
                 highWaterMark: 1 << 62,
                 liveBuffer: 1 << 62,
                 dlChunkSize: 0,
-                quality: 'highestaudio',
+                quality: "highestaudio",
             });
             return createAudioResource(stream);
         };
@@ -107,7 +114,7 @@ const command = buildSearchCommand(
             return {
                 content: `Queued **${audioName}**`,
                 embeds: [],
-                components: []
+                components: [],
             };
         }
 
@@ -117,7 +124,7 @@ const command = buildSearchCommand(
             embeds: [],
             components: [],
         };
-    }
+    },
 );
 
 export default command;

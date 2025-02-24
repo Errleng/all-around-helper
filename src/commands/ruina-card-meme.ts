@@ -1,44 +1,39 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
+import { SlashCommandBuilder } from "@discordjs/builders";
 import {
     AttachmentBuilder,
     ButtonBuilder,
     ButtonStyle,
     ChatInputCommandInteraction,
     PermissionFlagsBits,
-} from 'discord.js';
-import { Card, CommandOptions } from '../types';
-import { getCanvasLines, cardImageToPath } from '../utils';
-import * as Canvas from 'canvas';
-import { getCardsFromDatabase } from '../database';
-import { buildSearchCommand } from '../command-builder';
+} from "discord.js";
+import { Card, CommandOptions } from "../types";
+import { getCanvasLines, cardImageToPath } from "../utils";
+import * as Canvas from "canvas";
+import { getCardsFromDatabase } from "../database";
+import { buildSearchCommand } from "../command-builder";
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()
-        .setName('ruina-card-meme')
-        .setDescription(
-            'Generates a TOP TEXT BOTTOM TEXT meme of a Library of Ruina card art'
-        )
+        .setName("ruina-card-meme")
+        .setDescription("Generates a TOP TEXT BOTTOM TEXT meme of a Library of Ruina card art")
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption((option) =>
-            option
-                .setName('cardname')
-                .setDescription('The name of the card')
-                .setRequired(true)
+            option.setName("cardname").setDescription("The name of the card").setRequired(true),
         )
         .addStringOption((option) =>
             option
-                .setName('toptext')
-                .setDescription('The text at the top of the image')
-                .setRequired(false)
+                .setName("toptext")
+                .setDescription("The text at the top of the image")
+                .setRequired(false),
         )
         .addStringOption((option) =>
             option
-                .setName('bottomtext')
-                .setDescription('The text at the bottom of the image')
-                .setRequired(false)
+                .setName("bottomtext")
+                .setDescription("The text at the bottom of the image")
+                .setRequired(false),
         ),
     async (options: CommandOptions) => {
-        const query = options.getString('cardname');
+        const query = options.getString("cardname");
         if (query === null) {
             throw new Error(`Invalid query: ${query}`);
         }
@@ -52,8 +47,8 @@ const command = buildSearchCommand(
             .setStyle(ButtonStyle.Secondary);
     },
     async (item: Card, int: ChatInputCommandInteraction) => {
-        const topText = int.options.getString('toptext') ?? '';
-        const bottomText = int.options.getString('bottomtext') ?? '';
+        const topText = int.options.getString("toptext") ?? "";
+        const bottomText = int.options.getString("bottomtext") ?? "";
         const cardImage = await Canvas.loadImage(cardImageToPath(item.image));
         const canvas = await drawMeme(cardImage, topText, bottomText);
         const attachment = new AttachmentBuilder(canvas.toBuffer());
@@ -61,7 +56,7 @@ const command = buildSearchCommand(
         return {
             files: [attachment],
         };
-    }
+    },
 );
 
 const drawMeme = async (image: Canvas.Image, topText: string, bottomText: string) => {
@@ -70,13 +65,13 @@ const drawMeme = async (image: Canvas.Image, topText: string, bottomText: string
     const lineHeight = 32;
     // card art is usually 410x310
     const canvas = Canvas.createCanvas(image.width, image.height);
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-    context.font = '32px Impact';
-    context.fillStyle = '#FFFFFF';
-    context.strokeStyle = '#000000';
-    context.textAlign = 'center';
+    context.font = "32px Impact";
+    context.fillStyle = "#FFFFFF";
+    context.strokeStyle = "#000000";
+    context.textAlign = "center";
     context.lineWidth = 5;
 
     const topTextLines = getCanvasLines(context, topText, canvas.width);
@@ -86,17 +81,10 @@ const drawMeme = async (image: Canvas.Image, topText: string, bottomText: string
         context.strokeText(line, canvas.width / 2, lineY);
         context.fillText(line, canvas.width / 2, lineY);
     }
-    const bottomTextLines = getCanvasLines(
-        context,
-        bottomText,
-        canvas.width
-    );
+    const bottomTextLines = getCanvasLines(context, bottomText, canvas.width);
     for (let i = 0; i < bottomTextLines.length; i++) {
         const line = bottomTextLines[i];
-        const lineY =
-            bottomTextHeight -
-            (bottomTextLines.length - 1) * lineHeight +
-            i * lineHeight;
+        const lineY = bottomTextHeight - (bottomTextLines.length - 1) * lineHeight + i * lineHeight;
         context.strokeText(line, canvas.width / 2, lineY);
         context.fillText(line, canvas.width / 2, lineY);
     }

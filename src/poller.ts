@@ -1,8 +1,8 @@
-import { client } from './index';
-import { env, ALLOWED_GUILD_IDS, MAX_STATUS_CHARS, NAME_POOL, STATUS_MESSAGES } from './constants';
-import { ActivityType, GuildMember, OAuth2Guild } from 'discord.js';
-import { splitIntoPhrases } from './utils';
-import { checkSteamSales } from './steam';
+import { client } from "./index";
+import { env, ALLOWED_GUILD_IDS, MAX_STATUS_CHARS, NAME_POOL, STATUS_MESSAGES } from "./constants";
+import { ActivityType, GuildMember, OAuth2Guild } from "discord.js";
+import { splitIntoPhrases } from "./utils";
+import { checkSteamSales } from "./steam";
 
 type ChannelStates = Map<string, Map<string, Map<string, GuildMember>>>;
 
@@ -27,15 +27,19 @@ const channelStateChanged = (oldState: ChannelStates, newState: ChannelStates) =
     return false;
 };
 
-const logGuildMembers = async(guilds: OAuth2Guild[]) => {
+const logGuildMembers = async (guilds: OAuth2Guild[]) => {
     const guildValues = await Promise.all(guilds.map(async (x) => await x.fetch()));
-    const scanString = (await Promise.all(guildValues.map(async (guild) => {
-        const members = await guild.members.fetch();
-        const usernames = members.map((x) => x.user.username);
-        const membersStr = usernames.slice(0, 100).join(', ');
-        const guildStr = `(${members.size}) ${guild.name}\n${membersStr}`;
-        return guildStr;
-    }))).join('\n');
+    const scanString = (
+        await Promise.all(
+            guildValues.map(async (guild) => {
+                const members = await guild.members.fetch();
+                const usernames = members.map((x) => x.user.username);
+                const membersStr = usernames.slice(0, 100).join(", ");
+                const guildStr = `(${members.size}) ${guild.name}\n${membersStr}`;
+                return guildStr;
+            }),
+        )
+    ).join("\n");
     console.debug(scanString);
 };
 
@@ -70,35 +74,43 @@ const listenChannelState = async () => {
 
     logGuildMembers(Array.from(guilds.values()));
 
-
     if (channelStateChanged(channelStates, newChannelStates)) {
-        const channelStateStr = Array.from(newChannelStates).map(([guildName, channels]) =>
-            `${guildName}\n${Array.from(channels)
-                .filter((x) => x[1].size > 0)
-                .map(([channelName, members]) => {
-                    return `> ${channelName}: ${Array.from(members.values()).map((x) => {
-                        let res = `${x.user.username}`;
-                        if (x.voice.streaming) {
-                            res += ' (streaming)';
-                        }
-                        return res;
-                    }).join(', ')}`;
-                }).join('\n')}`
-        ).join('\n');
+        const channelStateStr = Array.from(newChannelStates)
+            .map(
+                ([guildName, channels]) =>
+                    `${guildName}\n${Array.from(channels)
+                        .filter((x) => x[1].size > 0)
+                        .map(([channelName, members]) => {
+                            return `> ${channelName}: ${Array.from(members.values())
+                                .map((x) => {
+                                    let res = `${x.user.username}`;
+                                    if (x.voice.streaming) {
+                                        res += " (streaming)";
+                                    }
+                                    return res;
+                                })
+                                .join(", ")}`;
+                        })
+                        .join("\n")}`,
+            )
+            .join("\n");
         user.send(channelStateStr);
     } else {
-        console.debug('No changes in voice channels');
+        console.debug("No changes in voice channels");
     }
     channelStates = newChannelStates;
 };
 
 let showActivityMessageTimer: NodeJS.Timeout | null = null;
 const showActivityMessage = (phrases: string[], curIdx: number, delayBetween: number) => {
-    const newMsg = phrases[curIdx] ?? '';
+    const newMsg = phrases[curIdx] ?? "";
     client.user?.setActivity(newMsg, { type: ActivityType.Playing });
 
     if (phrases.length > 1) {
-        showActivityMessageTimer = setTimeout(() => showActivityMessage(phrases, (curIdx + 1) % phrases.length, delayBetween), delayBetween);
+        showActivityMessageTimer = setTimeout(
+            () => showActivityMessage(phrases, (curIdx + 1) % phrases.length, delayBetween),
+            delayBetween,
+        );
     }
 };
 
@@ -112,7 +124,7 @@ const changeActivityMessage = async () => {
     curMsgIdx = newMsgIdx;
 
     const name = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
-    const message = STATUS_MESSAGES[curMsgIdx].replace('<name>', name);
+    const message = STATUS_MESSAGES[curMsgIdx].replace("<name>", name);
     const phrases = splitIntoPhrases(message, MAX_STATUS_CHARS);
     console.debug(`update activity ${curMsgIdx}, ${message.length}, ${phrases.length}`);
 

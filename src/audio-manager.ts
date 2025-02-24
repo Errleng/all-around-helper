@@ -1,5 +1,13 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { AudioInfo } from './types';
+import {
+    AudioPlayer,
+    AudioPlayerStatus,
+    AudioResource,
+    createAudioPlayer,
+    NoSubscriberBehavior,
+    VoiceConnection,
+    VoiceConnectionStatus,
+} from "@discordjs/voice";
+import { AudioInfo } from "./types";
 
 let connection: VoiceConnection | null = null;
 let disconnectTimer: NodeJS.Timer | null = null;
@@ -7,29 +15,29 @@ const playQueue: AudioInfo[] = [];
 
 const player: AudioPlayer = createAudioPlayer({
     behaviors: {
-        noSubscriber: NoSubscriberBehavior.Pause
-    }
+        noSubscriber: NoSubscriberBehavior.Pause,
+    },
 });
 
-player.on('error', (e: any) => {
-    console.error('Audio player encountered error:', e);
+player.on("error", (e: any) => {
+    console.error("Audio player encountered error:", e);
 });
 
 player.on(AudioPlayerStatus.Buffering, () => {
-    console.debug('audio player is buffering');
+    console.debug("audio player is buffering");
 });
 
 player.on(AudioPlayerStatus.Paused, () => {
-    console.debug('audio player is paused');
+    console.debug("audio player is paused");
 });
 
 player.on(AudioPlayerStatus.AutoPaused, () => {
-    console.debug('audio player is autopaused');
+    console.debug("audio player is autopaused");
 });
 
 player.on(AudioPlayerStatus.Idle, () => {
     if (playQueue.length === 0) {
-        console.debug('Found empty queue on idle');
+        console.debug("Found empty queue on idle");
         startDisconnectTimer();
         return;
     }
@@ -47,7 +55,7 @@ player.on(AudioPlayerStatus.Idle, () => {
         console.debug(`playing ${newAudio.name} in the queue of ${playQueue.length} audios`);
         player.play(newAudio.resource);
     } else {
-        console.debug('audio player has nothing to play');
+        console.debug("audio player has nothing to play");
     }
 });
 
@@ -56,16 +64,19 @@ export const startDisconnectTimer = () => {
         disconnectTimer.refresh();
         return;
     }
-    disconnectTimer = setTimeout(() => {
-        connection?.destroy();
-        connection = null;
-        console.debug('disconnecting after long period of idling');
-    }, 1000 * 60 * 60);
+    disconnectTimer = setTimeout(
+        () => {
+            connection?.destroy();
+            connection = null;
+            console.debug("disconnecting after long period of idling");
+        },
+        1000 * 60 * 60,
+    );
 };
 
 export const startConnection = (newConnection: VoiceConnection) => {
     if (connection !== null && connection !== newConnection) {
-        console.debug('destroying existing connection', connection);
+        console.debug("destroying existing connection", connection);
         connection.destroy();
     }
 
@@ -85,7 +96,7 @@ export const startPlaying = (name: string, createResource: () => AudioResource) 
         name,
         resource,
         loop: false,
-        createResource
+        createResource,
     });
     player.play(resource);
 };
@@ -96,7 +107,7 @@ export const enqueueAudio = (name: string, createResource: () => AudioResource) 
         name,
         resource,
         loop: false,
-        createResource
+        createResource,
     });
 };
 
@@ -112,7 +123,7 @@ export const getQueue = () => {
 export const playQueued = () => {
     player.stop();
     if (playQueue.length == 0) {
-        console.warn('Queue is empty');
+        console.warn("Queue is empty");
         return;
     }
     player.play(playQueue[0].resource);

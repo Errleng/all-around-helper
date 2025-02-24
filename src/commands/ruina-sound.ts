@@ -1,54 +1,62 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, PermissionFlagsBits, VoiceChannel } from 'discord.js';
-import { CommandOptions, Sound, SoundCategory } from '../types';
-import { getSoundsFromDatabase } from '../database';
-import path from 'path';
-import { client } from '../index';
-import { createAudioResource, DiscordGatewayAdapterCreator, joinVoiceChannel, } from '@discordjs/voice';
-import { startConnection, startPlaying } from '../audio-manager';
-import { buildSearchCommand } from '../command-builder';
+import { SlashCommandBuilder } from "@discordjs/builders";
+import {
+    ButtonBuilder,
+    ButtonStyle,
+    ChatInputCommandInteraction,
+    PermissionFlagsBits,
+    VoiceChannel,
+} from "discord.js";
+import { CommandOptions, Sound, SoundCategory } from "../types";
+import { getSoundsFromDatabase } from "../database";
+import path from "path";
+import { client } from "../index";
+import {
+    createAudioResource,
+    DiscordGatewayAdapterCreator,
+    joinVoiceChannel,
+} from "@discordjs/voice";
+import { startConnection, startPlaying } from "../audio-manager";
+import { buildSearchCommand } from "../command-builder";
 
 const command = buildSearchCommand(
     new SlashCommandBuilder()
-        .setName('ruina-sound')
-        .setDescription('Replies with a random Library of Ruina sound')
+        .setName("ruina-sound")
+        .setDescription("Replies with a random Library of Ruina sound")
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption((option) =>
             option
-                .setName('category')
-                .setDescription('Sound category')
+                .setName("category")
+                .setDescription("Sound category")
                 .setRequired(true)
                 .addChoices(
-                    { name: 'SFX', value: SoundCategory[SoundCategory.SoundEffect] },
-                    { name: 'Music', value: SoundCategory[SoundCategory.Music] },
-                    { name: 'Dialogue', value: SoundCategory[SoundCategory.Dialogue] },
-                ))
+                    { name: "SFX", value: SoundCategory[SoundCategory.SoundEffect] },
+                    { name: "Music", value: SoundCategory[SoundCategory.Music] },
+                    { name: "Dialogue", value: SoundCategory[SoundCategory.Dialogue] },
+                ),
+        )
         .addStringOption((option) =>
-            option
-                .setName('name')
-                .setDescription('Sound name')
-                .setRequired(false)
+            option.setName("name").setDescription("Sound name").setRequired(false),
         )
         .addStringOption((option) =>
             option
-                .setName('channel')
-                .setDescription('Voice channel ID to play sound in')
-                .setRequired(false)
+                .setName("channel")
+                .setDescription("Voice channel ID to play sound in")
+                .setRequired(false),
         ),
     async (options: CommandOptions) => {
         let sounds = await getSoundsFromDatabase();
-        const selectedCategory = options.getString('category');
+        const selectedCategory = options.getString("category");
         const filterCategory = SoundCategory[selectedCategory as keyof typeof SoundCategory];
-        sounds = sounds.filter(
-            (sound) => sound.category === filterCategory
-        );
+        sounds = sounds.filter((sound) => sound.category === filterCategory);
 
-        const query = options.getString('name');
+        const query = options.getString("name");
         if (query === null) {
             const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
             return [randomSound];
         }
-        const foundSounds = sounds.filter((x) => path.parse(x.fileName).name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+        const foundSounds = sounds.filter((x) =>
+            path.parse(x.fileName).name.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+        );
         return foundSounds;
     },
     (item: Sound) => {
@@ -58,10 +66,10 @@ const command = buildSearchCommand(
             .setStyle(ButtonStyle.Secondary);
     },
     async (item: Sound, int: ChatInputCommandInteraction) => {
-        const channelId = int.options.getString('channel');
+        const channelId = int.options.getString("channel");
         if (channelId === null) {
             return {
-                files: [item.fileName]
+                files: [item.fileName],
             };
         } else {
             let channel = null;
@@ -73,22 +81,23 @@ const command = buildSearchCommand(
             if (channel === null) {
                 return {
                     content: `Invalid voice channel: ${channelId}`,
-                    ephemeral: true
+                    ephemeral: true,
                 };
             }
             if (!channel.isVoiceBased()) {
                 return {
                     content: `Not a voice channel: ${channelId}`,
-                    ephemeral: true
+                    ephemeral: true,
                 };
             }
 
-            console.log('voice channel', channel);
+            console.log("voice channel", channel);
             const voiceChannel = channel as VoiceChannel;
             const connection = joinVoiceChannel({
                 channelId: voiceChannel.id,
                 guildId: voiceChannel.guild.id,
-                adapterCreator: voiceChannel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
+                adapterCreator: voiceChannel.guild
+                    .voiceAdapterCreator as DiscordGatewayAdapterCreator,
             });
             startConnection(connection);
 
@@ -103,7 +112,7 @@ const command = buildSearchCommand(
                 components: [],
             };
         }
-    }
+    },
 );
 
 export default command;

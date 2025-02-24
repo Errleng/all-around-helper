@@ -14,6 +14,7 @@ import {
     DialogueCategory,
     Sound,
     SoundCategory,
+    SteamSale,
     AbnoPage,
     AbnoTargetType,
     Emotion,
@@ -37,6 +38,7 @@ export const resetDatabase = async () => {
     await dbClient.query('DROP TABLE IF EXISTS dialogues');
     await dbClient.query('DROP TABLE IF EXISTS books');
     await dbClient.query('DROP TABLE IF EXISTS sounds');
+    await dbClient.query('DROP TABLE IF EXISTS steam_sales');
     await dbClient.query('DROP TYPE IF EXISTS abno_target_type');
     await dbClient.query('DROP TYPE IF EXISTS card_rarity');
     await dbClient.query('DROP TYPE IF EXISTS card_range');
@@ -119,7 +121,14 @@ export const resetDatabase = async () => {
     await dbClient.query(`CREATE TABLE IF NOT EXISTS sounds (
         id              int generated always as identity,
         category        sound_category,
-        file_name        text
+        file_name       text
+    )`);
+    await dbClient.query(`CREATE TABLE IF NOT EXISTS steam_sales (
+        id                      int generated always as identity,
+        game_id                 text,
+        creator_id              text,
+        discount_percentage     int,
+        last_checked            timestamptz
     )`);
     await dbClient.end();
     await populateDatabase();
@@ -510,5 +519,41 @@ const insertSoundIntoDatabase = async (dbClient: Client, sound: Sound) => {
     await dbClient.query(
         'INSERT INTO sounds(category, file_name) VALUES($1, $2)',
         [SoundCategory[sound.category], sound.fileName]
+    );
+};
+
+export const getSteamSalesFromDatabase = async () => {
+    const dbClient = new Client(POSTGRES_CONNECTION);
+    await dbClient.connect();
+    const sales = await dbClient.query('SELECT * FROM steam_sales');
+
+    const result: SteamSale[] = [];
+    for (const row of sales.rows) {
+        const sale: SteamSale = {
+            id: row.id,
+            gameId: row.game_id,
+            creatorId: row.creator_id,
+            discountPercentage: row.discount_percentage,
+            lastChecked: row.last_checked,
+        };
+        result.push(sale);
+    }
+
+    await dbClient.end();
+    return result;
+};
+
+export const insertSteamSaleIntoDatabase = async (dbClient: Client, sale: SteamSale) => {
+    await deleteSteamSaleFromDatabase(dbClient, sale.gameId);
+    await dbClient.query(
+        'INSERT INTO steam_sales(game_id, creator_id, discount_percentage, last_checked) VALUES($1, $2, $3, $4)',
+        [sale.gameId, sale.creatorId, sale.discountPercentage, sale.lastChecked]
+    );
+};
+
+export const deleteSteamSaleFromDatabase = async (dbClient: Client, gameId: string) => {
+    await dbClient.query(
+        'DELETE FROM steam_sales WHERE game_id = $1',
+        [gameId]
     );
 };

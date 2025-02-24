@@ -2,6 +2,7 @@ import { client } from './index';
 import { env, ALLOWED_GUILD_IDS, MAX_STATUS_CHARS, NAME_POOL, STATUS_MESSAGES } from './constants';
 import { ActivityType, GuildMember, OAuth2Guild } from 'discord.js';
 import { splitIntoPhrases } from './utils';
+import { checkSteamSales } from './steam';
 
 type ChannelStates = Map<string, Map<string, Map<string, GuildMember>>>;
 
@@ -123,11 +124,14 @@ const changeActivityMessage = async () => {
 
 let tick = 0;
 export const mainLoop = () => {
-    if (tick % (10 * 60) == 0) {
+    if (tick % (10 * 60) === 0) {
         listenChannelState();
     }
-    if (tick % (5 * 60) == 0) {
+    if (tick % (5 * 60) === 0) {
         changeActivityMessage();
+    }
+    if (tick % (60 * 60) === 0) {
+        checkSteamSales();
     }
     tick = (tick + 1) % (60 * 60 * 24 * 10); // reset after 10 days
     setTimeout(mainLoop, 1000);

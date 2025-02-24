@@ -76,6 +76,14 @@ export interface AudioInfo {
     createResource: () => AudioResource;
 }
 
+export interface SteamSale {
+    id: number;
+    gameId: string;
+    creatorId: string;
+    discountPercentage: number;
+    lastChecked: string;
+}
+
 export enum AbnoTargetType {
     SelectOne,
     All,

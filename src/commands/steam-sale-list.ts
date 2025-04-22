@@ -48,7 +48,9 @@ const command: Command = {
                     return `${gameData[sale.gameId].data.name} (${sale.gameId})`;
                 }),
             )
-        ).join("\n");
+        )
+            .sort()
+            .join("\n");
         if (reply.length > 0) {
             await interaction.reply({
                 content: reply,

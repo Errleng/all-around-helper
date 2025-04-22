@@ -76,20 +76,33 @@ export const checkSteamSales = async () => {
             // The sale is the same as before
             continue;
         }
-        // Update game information
-        await addSteamGame(sale.gameId, sale.creatorId);
 
+        let reportsSucceeded = true;
         if (
             discountPercentage >= DISCOUNT_PERCENT_THRESHOLD ||
             (discountPercentage > 0 && discountPercentage === highestDiscount)
         ) {
             // The sale is big enough to post about
             for (const channelId of BROADCAST_CHANNEL_IDS) {
-                const channel = (await client.channels.fetch(channelId)) as TextChannel;
-                channel?.send(
-                    `**${discountPercentage}% OFF** (best is ${highestDiscount}%) - ${data.name} - https://store.steampowered.com/app/${sale.gameId}`,
-                );
+                console.debug(`Reporting sale of ${sale.gameId} to channel ${channelId}`);
+                try {
+                    const channel = (await client.channels.fetch(channelId)) as TextChannel;
+                    await channel.send(
+                        `**${discountPercentage}% OFF** (best is ${highestDiscount}%) - ${data.name} - https://store.steampowered.com/app/${sale.gameId}`,
+                    );
+                } catch (e) {
+                    console.error(
+                        `Failed to report sale of ${sale.gameId} to channel ${channelId}`,
+                        e,
+                    );
+                    reportsSucceeded = false;
+                }
             }
+        }
+
+        // Update game information
+        if (reportsSucceeded) {
+            await addSteamGame(sale.gameId, sale.creatorId);
         }
     }
 };
